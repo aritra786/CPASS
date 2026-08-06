@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { routeMobileApi } from '../services/routeMobileApi';
 import { ChannelType } from '../types';
 import {
   Send,
@@ -11,7 +12,9 @@ import {
   Sparkles,
   Phone,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Key,
+  Globe
 } from 'lucide-react';
 
 export const SendMessage: React.FC = () => {
@@ -30,6 +33,11 @@ export const SendMessage: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [customMessage, setCustomMessage] = useState('Hello! Welcome to CONNEX CPaaS platform services.');
   
+  // API Key State
+  const [jwtToken, setJwtToken] = useState<string>(() => routeMobileApi.getToken());
+  const [showApiSettings, setShowShowApiSettings] = useState<boolean>(false);
+  const [apiResponseDetails, setApiResponseDetails] = useState<any | null>(null);
+
   // Bulk state
   const [campaignName, setCampaignName] = useState('Q3 Customer Re-Engagement');
   const [recipientCount, setRecipientCount] = useState<number>(1000);
@@ -44,6 +52,11 @@ export const SendMessage: React.FC = () => {
   const costPerMsg = matchedRate?.ratePerMsg ?? 0.0085;
   const totalCost = mode === 'single' ? costPerMsg : (recipientCount ?? 1) * costPerMsg;
 
+  const handleSaveToken = (val: string) => {
+    setJwtToken(val);
+    routeMobileApi.setToken(val);
+  };
+
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -52,27 +65,49 @@ export const SendMessage: React.FC = () => {
     }
   };
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     setSendError(null);
     setSendSuccess(null);
+    setApiResponseDetails(null);
 
     const currentBal = walletBalance ?? 0;
     if (currentBal < totalCost) {
-      setSendError(`Insufficient Wallet Balance (₹${currentBal.toFixed(2)} available vs ₹{(totalCost ?? 0).toFixed(2)} required). Please top up your wallet.`);
+      setSendError(`Insufficient Wallet Balance (₹${currentBal.toFixed(2)} available vs ₹${(totalCost ?? 0).toFixed(2)} required). Please top up your wallet.`);
       return;
     }
 
     setIsSending(true);
 
-    setTimeout(() => {
+    try {
       const selectedTpl = templates.find(t => t.id === selectedTemplateId);
       const tName = selectedTpl ? selectedTpl.name : 'session_direct';
+
+      // Live Route Mobile WhatsApp API Dispatch
+      let apiResult: any = null;
+      if (activeChannel === 'WhatsApp' || activeChannel === 'RCS') {
+        const payload = {
+          phone: recipientPhone,
+          enable_acculync: true,
+          extra: 'connex_cpaas',
+          text: customMessage,
+          media: selectedTpl ? {
+            type: 'media_template',
+            template_name: selectedTpl.name,
+            lang_code: 'en',
+            body: [{ text: customMessage }]
+          } : undefined
+        };
+
+        apiResult = await routeMobileApi.sendMessage(payload, jwtToken);
+        setApiResponseDetails(apiResult);
+      }
 
       if (mode === 'single') {
         const ok = sendSingleMessage(recipientPhone, activeChannel, tName, totalCost);
         if (ok) {
-          setSendSuccess(`Single ${activeChannel} message sent to ${recipientPhone}! Cost ₹${(totalCost ?? 0).toFixed(4)} deducted from wallet.`);
+          const reqIdText = apiResult?.request_id ? ` (Req ID: ${apiResult.request_id})` : '';
+          setSendSuccess(`Single ${activeChannel} message sent to ${recipientPhone}${reqIdText}! Cost ₹${(totalCost ?? 0).toFixed(4)} deducted from wallet.`);
         } else {
           setSendError('Failed to dispatch message.');
         }
@@ -84,9 +119,12 @@ export const SendMessage: React.FC = () => {
           setSendError('Failed to execute bulk campaign.');
         }
       }
-
+    } catch (err: any) {
+      console.error('API Send error:', err);
+      setSendError(`Route Mobile API connection notice: ${err.message || 'Error triggering gateway'}`);
+    } finally {
       setIsSending(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -122,6 +160,62 @@ export const SendMessage: React.FC = () => {
             ₹{(costPerMsg ?? 0).toFixed(4)} / message
           </div>
         </div>
+      </div>
+
+      {/* Route Mobile API Gateway Status Banner */}
+      <div className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div>
+              <span className="font-extrabold text-xs text-slate-900">Route Mobile WhatsApp API Endpoint: </span>
+              <span className="font-mono text-xs text-blue-600">https://apis.rmlconnect.net</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowShowApiSettings(!showApiSettings)}
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span>{showApiSettings ? 'Hide API Auth' : 'Configure JWT Token'}</span>
+          </button>
+        </div>
+
+        {showApiSettings && (
+          <div className="pt-2 border-t border-slate-100 space-y-2">
+            <label className="block text-[11px] font-bold text-slate-700">
+              Route Mobile Authorization JWT Token / Key
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={jwtToken}
+                onChange={(e) => handleSaveToken(e.target.value)}
+                placeholder="Paste JWTAUTH token or Bearer key..."
+                className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => alert("JWT token saved to application session context.")}
+                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800"
+              >
+                Save Key
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Requests pass securely through Express proxy gateway to <code>apis.rmlconnect.net</code>.
+            </p>
+          </div>
+        )}
+
+        {apiResponseDetails && (
+          <div className="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] space-y-1 overflow-x-auto">
+            <div className="text-emerald-400 font-bold text-[10px]">ROUTE MOBILE GATEWAY LIVE RESPONSE:</div>
+            <pre>{JSON.stringify(apiResponseDetails, null, 2)}</pre>
+          </div>
+        )}
       </div>
 
       {/* Main Dispatch Form */}

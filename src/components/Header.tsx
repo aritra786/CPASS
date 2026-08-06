@@ -250,39 +250,9 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="py-2 space-y-1">
-                  {portalMode === 'admin' ? (
-                    <button
-                      onClick={() => {
-                        setPortalMode('user');
-                        setProfileMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2"
-                    >
-                      <Building2 className="w-4 h-4 text-blue-600" />
-                      <span>Return to User Portal (/)</span>
-                    </button>
-                  ) : (
-                    <>
-                      <div className="px-3 py-1 text-xs font-medium text-slate-500">
-                        Company: <span className="font-bold text-slate-800">{userProfile?.company || 'N/A'}</span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setPortalMode('admin');
-                          setProfileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-lg flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-indigo-600" />
-                          <span>Switch to Admin Portal</span>
-                        </div>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded">
-                          /admin
-                        </span>
-                      </button>
-                    </>
-                  )}
+                  <div className="px-3 py-1 text-xs font-medium text-slate-500">
+                    Company: <span className="font-bold text-slate-800">{userProfile?.company || 'N/A'}</span>
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100">

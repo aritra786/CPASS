@@ -8,7 +8,7 @@ import { AddFundsModal } from './components/modals/AddFundsModal';
 
 import { UserDashboard } from './pages/UserDashboard';
 import { SendMessage } from './pages/SendMessage';
-import { TemplateBuilder } from './pages/TemplateBuilder';
+import { TemplateManager } from './pages/TemplateManager';
 import { WalletBilling } from './pages/WalletBilling';
 import { CampaignManager } from './pages/CampaignManager';
 import { Reporting } from './pages/Reporting';
@@ -106,7 +106,7 @@ const MainAppLayout: React.FC = () => {
       case 'Send Message':
         return <SendMessage />;
       case 'Template':
-        return <TemplateBuilder />;
+        return <TemplateManager />;
       case 'Wallet & Billing':
       case 'Payment Configuration':
         return <WalletBilling onOpenAddFunds={() => setAddFundsOpen(true)} />;

@@ -43,7 +43,7 @@ interface AppContextType {
   
   // Templates
   templates: Template[];
-  addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'status'>) => void;
+  addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'status'> & { status?: Template['status'] }) => void;
   updateTemplate: (template: Template) => void;
   deleteTemplate: (id: string) => void;
   
@@ -78,7 +78,171 @@ interface AppContextType {
   setDateRange: (range: { start: string; end: string }) => void;
 }
 
-const initialTemplates: Template[] = [];
+const initialTemplates: Template[] = [
+  {
+    id: 'tpl_62375',
+    templateIdNum: '62375',
+    name: 'abc testing',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Text',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'testing',
+    variables: [],
+    actions: [],
+    status: 'Rejected',
+    rejectionReason: 'FAIL due to invalid/gibberish placeholder content ("testing") and declared category mismatch (declared AUTHENTICATION but no OTP/code/authentication context is present).',
+    createdAt: '2026-07-23',
+    updatedAt: '2026-07-23 04:03 PM'
+  },
+  {
+    id: 'tpl_62376',
+    templateIdNum: '62376',
+    name: 'session carousel',
+    channel: 'RCS',
+    type: 'Carousel',
+    category: 'Carousel',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'card1[test1], card2[test2]',
+    variables: ['test1', 'test2'],
+    actions: [
+      { id: 'act_1', type: 'QUICK_REPLY', label: 'View Session', value: 'VIEW_SESSION' }
+    ],
+    status: 'Rejected',
+    rejectionReason: 'FAIL due to invalid/gibberish placeholder content (\'card1[test1]\', \'card2[test2]\') and category mismatch.',
+    createdAt: '2026-07-13',
+    updatedAt: '2026-07-13 02:15 PM'
+  },
+  {
+    id: 'tpl_62377',
+    templateIdNum: '62377',
+    name: 'bcvwhevfhwev',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Text',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'cgyewgfyewgi',
+    variables: [],
+    actions: [],
+    status: 'Rejected',
+    rejectionReason: 'FAIL due to gibberish/invalid content: the message text "cgyewgfyewgi" is unintelligible and does not provide clear information to recipients.',
+    createdAt: '2026-06-19',
+    updatedAt: '2026-06-19 11:20 AM'
+  },
+  {
+    id: 'tpl_62378',
+    templateIdNum: '62378',
+    name: 'simpletxt_rcs',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Text',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'For testing purposes, you can create the template and test it in the created state itself; no approval needed.',
+    variables: [],
+    actions: [],
+    status: 'Rejected',
+    rejectionReason: 'For testing purposes, you can create the template and test it in the created state itself; no approval required for internal strings.',
+    createdAt: '2026-06-01',
+    updatedAt: '2026-06-01 09:00 AM'
+  },
+  {
+    id: 'tpl_62379',
+    templateIdNum: '62379',
+    name: 'order_status_update',
+    channel: 'RCS',
+    type: 'Rich Card',
+    category: 'Rich Card',
+    agentName: 'CONNEX Support',
+    sender: 'routeotp',
+    bodyText: 'Hello [var1], your order #[var2] has been shipped via Express Logistics. Track your delivery status below!',
+    headerType: 'Image',
+    headerMediaUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
+    variables: ['Name', 'Order ID'],
+    actions: [
+      { id: 'act_10', type: 'URL', label: 'Track Order', value: 'https://connex.io/track' },
+      { id: 'act_11', type: 'PHONE', label: 'Call Support', value: '+18005550199' }
+    ],
+    status: 'Approved',
+    createdAt: '2026-08-01',
+    updatedAt: '2026-08-01 10:30 AM'
+  },
+  {
+    id: 'tpl_62380',
+    templateIdNum: '62380',
+    name: 'auth_otp_verification',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Authentication',
+    agentName: 'CONNEX Security',
+    sender: 'routeotp',
+    bodyText: 'Your one-time security login passcode is [var1]. Valid for 5 minutes. Do not share this PIN with anyone.',
+    variables: ['OTP Code'],
+    actions: [
+      { id: 'act_12', type: 'QUICK_REPLY', label: 'Copy OTP', value: 'COPY_OTP' }
+    ],
+    status: 'Approved',
+    createdAt: '2026-08-04',
+    updatedAt: '2026-08-04 11:00 AM'
+  },
+  {
+    id: 'tpl_62381',
+    templateIdNum: '62381',
+    name: 'flash_sale_announcement',
+    channel: 'RCS',
+    type: 'Rich Card',
+    category: 'Marketing',
+    agentName: 'CONNEX Marketing',
+    sender: 'routeotp',
+    bodyText: 'Hey [var1]! Exclusive 30% OFF Flash Sale is LIVE now for your saved item [var2]. Use code [var3] at checkout.',
+    variables: ['Customer Name', 'Item Name', 'Promo Code'],
+    actions: [
+      { id: 'act_13', type: 'URL', label: 'Shop Now', value: 'https://connex.io/sale' }
+    ],
+    status: 'Approved',
+    createdAt: '2026-08-03',
+    updatedAt: '2026-08-03 03:45 PM'
+  },
+  {
+    id: 'tpl_62382',
+    templateIdNum: '62382',
+    name: 'delivery_notification',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Text',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'Your package is out for delivery today with agent [var1]. Contact: [var2].',
+    variables: ['Agent Name', 'Phone Number'],
+    actions: [
+      { id: 'act_14', type: 'QUICK_REPLY', label: 'Reschedule', value: 'RESCHEDULE' }
+    ],
+    status: 'Pending',
+    createdAt: '2026-08-05',
+    updatedAt: '2026-08-05 08:20 AM'
+  },
+  {
+    id: 'tpl_62383',
+    templateIdNum: '62383',
+    name: 'account_alert_security',
+    channel: 'RCS',
+    type: 'Text',
+    category: 'Text',
+    agentName: 'routeotp',
+    sender: 'routeotp',
+    bodyText: 'Notice: A new login was detected on your account from device [var1]. If this was not you, tap below.',
+    variables: ['Device Name'],
+    actions: [
+      { id: 'act_15', type: 'QUICK_REPLY', label: 'Secure Account', value: 'SECURE_NOW' }
+    ],
+    status: 'Pending',
+    createdAt: '2026-08-06',
+    updatedAt: '2026-08-06 09:15 AM'
+  }
+];
 
 const initialCampaigns: Campaign[] = [];
 
@@ -490,11 +654,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- TEMPLATES CRUD ---
-  const addTemplate = (templateData: Omit<Template, 'id' | 'createdAt' | 'status'>) => {
+  const addTemplate = (templateData: Omit<Template, 'id' | 'createdAt' | 'status'> & { status?: Template['status'] }) => {
     const newTemplate: Template = {
       ...templateData,
       id: `tpl_${Date.now()}`,
-      status: 'Approved',
+      status: templateData.status || 'Approved',
       createdAt: new Date().toISOString().split('T')[0]
     };
     setTemplates(prev => [newTemplate, ...prev]);

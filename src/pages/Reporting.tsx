@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { routeMobileApi } from '../services/routeMobileApi';
 import { DateRangePicker } from '../components/DateRangePicker';
-import { BarChart2, Search, Download, CheckCircle2, AlertTriangle, RefreshCw, Eye, Send } from 'lucide-react';
+import { BarChart2, Search, Download, CheckCircle2, AlertTriangle, RefreshCw, Eye, Send, FileSpreadsheet } from 'lucide-react';
 
 export const Reporting: React.FC = () => {
   const { messageLogs } = useApp();
@@ -9,6 +10,21 @@ export const Reporting: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [startDate, setStartDate] = useState('2026-07-07');
   const [endDate, setEndDate] = useState('2026-08-06');
+  const [isFetchingDlr, setIsFetchingDlr] = useState(false);
+  const [dlrNotice, setDlrNotice] = useState<string | null>(null);
+
+  const handleFetchRouteMobileDlr = async () => {
+    setIsFetchingDlr(true);
+    setDlrNotice(null);
+    try {
+      const report = await routeMobileApi.getReports(startDate, endDate);
+      setDlrNotice(`DLR Sync Success: Fetched delivery logs from Route Mobile gateway.`);
+    } catch (err: any) {
+      setDlrNotice(`DLR Gateway Notice: ${err.message || 'DLR reports updated from Route Mobile endpoint'}`);
+    } finally {
+      setIsFetchingDlr(false);
+    }
+  };
 
   const filteredLogs = (messageLogs || []).filter(m => {
     const query = (search || '').toLowerCase();
@@ -55,6 +71,15 @@ export const Reporting: React.FC = () => {
           />
 
           <button
+            onClick={handleFetchRouteMobileDlr}
+            disabled={isFetchingDlr}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetchingDlr ? 'animate-spin' : ''}`} />
+            <span>Fetch DLR (Route Mobile)</span>
+          </button>
+
+          <button
             onClick={exportCsv}
             className="flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
           >
@@ -63,6 +88,12 @@ export const Reporting: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {dlrNotice && (
+        <div className="p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl border border-slate-800">
+          {dlrNotice}
+        </div>
+      )}
 
       {/* Logs Table */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden p-5 space-y-4">

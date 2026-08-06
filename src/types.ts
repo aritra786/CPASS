@@ -1,6 +1,6 @@
 export type ChannelType = 'RCS' | 'WhatsApp' | 'Viber' | 'Acculync' | 'SMS Fallback' | 'SMS';
 
-export type TemplateType = 'Text' | 'Rich Card' | 'Carousel' | 'OTP' | 'Interactive Action';
+export type TemplateType = 'Text' | 'Rich Card' | 'Carousel' | 'Text + PDF' | 'OTP' | 'Interactive Action';
 
 export interface TemplateAction {
   id: string;
@@ -11,17 +11,22 @@ export interface TemplateAction {
 
 export interface Template {
   id: string;
+  templateIdNum?: string;
   name: string;
   channel: ChannelType;
   type: TemplateType;
   agentName: string;
+  sender?: string;
+  category?: string;
   bodyText: string;
   headerMediaUrl?: string;
   headerType?: 'None' | 'Image' | 'Video' | 'Document';
   variables: string[];
   actions: TemplateAction[];
   status: 'Approved' | 'Pending' | 'Rejected';
+  rejectionReason?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Campaign {

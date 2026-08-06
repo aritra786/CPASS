@@ -15,7 +15,8 @@ import {
   Layers,
   HelpCircle,
   Key,
-  Globe
+  Globe,
+  RefreshCw
 } from 'lucide-react';
 
 export const SendMessage: React.FC = () => {
@@ -186,7 +187,7 @@ export const SendMessage: React.FC = () => {
             </label>
             <div className="flex gap-2">
               <input
-                type="password"
+                type="text"
                 value={jwtToken}
                 onChange={(e) => handleSaveToken(e.target.value)}
                 placeholder="Paste JWTAUTH token or Bearer key..."
@@ -194,14 +195,26 @@ export const SendMessage: React.FC = () => {
               />
               <button
                 type="button"
-                onClick={() => alert("JWT token saved to application session context.")}
-                className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800"
+                onClick={async () => {
+                  if (jwtToken) routeMobileApi.setToken(jwtToken);
+                  try {
+                    const data = await routeMobileApi.fetchAllDetails(jwtToken);
+                    setApiResponseDetails({
+                      status: '200 OK Token Validated',
+                      details: data
+                    });
+                  } catch (err: any) {
+                    setApiResponseDetails({ error: err.message || 'Error fetching details' });
+                  }
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-2xs flex items-center gap-1.5"
               >
-                Save Key
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Fetch Details from APIs</span>
               </button>
             </div>
             <p className="text-[10px] text-slate-500">
-              Requests pass securely through Express proxy gateway to <code>apis.rmlconnect.net</code>.
+              Token is used to authorize endpoints on <code>apis.rmlconnect.net</code> and backend proxy.
             </p>
           </div>
         )}

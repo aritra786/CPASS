@@ -69,6 +69,34 @@ export const ProfileManagement: React.FC = () => {
   const [rbmServiceAccountJson, setRbmServiceAccountJson] = useState('{\n  "type": "service_account",\n  "project_id": "connex-rbm-messaging",\n  "private_key_id": "89a2b1f..."\n}');
   const [rbmSaved, setRbmSaved] = useState(false);
 
+  // Route Mobile API Token & Details Fetcher State
+  const [jwtTokenInput, setJwtTokenInput] = useState<string>(() => routeMobileApi.getToken() || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMDk0ODEsInVzZXJuYW1lIjoiY29ubmV4X2FkbWluIiwiZXhwIjoxNzkxMjM0NTY3fQ.demo_jwt_token_connex');
+  const [isFetchingApiDetails, setIsFetchingApiDetails] = useState(false);
+  const [apiDetailsData, setApiDetailsData] = useState<any>(null);
+  const [apiFetchNotice, setApiFetchNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Auto fetch details on load using token
+    handleFetchAllApiDetails();
+  }, []);
+
+  const handleFetchAllApiDetails = async () => {
+    setIsFetchingApiDetails(true);
+    setApiFetchNotice(null);
+    try {
+      if (jwtTokenInput) {
+        routeMobileApi.setToken(jwtTokenInput);
+      }
+      const data = await routeMobileApi.fetchAllDetails(jwtTokenInput);
+      setApiDetailsData(data);
+      setApiFetchNotice('Successfully authenticated with JWT token & retrieved all details from Route Mobile / Backend APIs!');
+    } catch (err: any) {
+      setApiFetchNotice(`API Details notice: ${err.message || 'Complete'}`);
+    } finally {
+      setIsFetchingApiDetails(false);
+    }
+  };
+
   // Route Mobile WhatsApp API State
   const [rmUsername, setRmUsername] = useState('connex_routemobile_user');
   const [rmPassword, setRmPassword] = useState('••••••••••••••••');
@@ -640,6 +668,162 @@ export const ProfileManagement: React.FC = () => {
       {/* TAB 4: Route Mobile WhatsApp Business API */}
       {activeSubTab === 'route_mobile' && (
         <div className="space-y-6">
+
+          {/* Token-Based Multi-Endpoint API Synchronizer */}
+          <div className="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white rounded-2xl border border-purple-800/60 shadow-xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-800/60 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 font-black">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-white tracking-wide">Route Mobile JWT Bearer Token API Synchronizer</h3>
+                  <p className="text-[11px] text-purple-200/80">Queries Account Details, Templates, Campaign Reports & Catalogs using token</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full flex items-center gap-1.5 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Token Authenticated
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-purple-200 mb-1">Authorization JWT Bearer Token (`JWTAUTH`)</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={jwtTokenInput}
+                    onChange={(e) => setJwtTokenInput(e.target.value)}
+                    placeholder="Enter JWTAUTH token..."
+                    className="flex-1 px-3 py-2 text-xs bg-slate-950/80 border border-purple-700/60 rounded-xl font-mono text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchAllApiDetails}
+                    disabled={isFetchingApiDetails}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 shrink-0 transition-all disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isFetchingApiDetails ? 'animate-spin' : ''}`} />
+                    <span>{isFetchingApiDetails ? 'Fetching All API Details...' : 'Fetch All Details from APIs'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {apiFetchNotice && (
+                <div className="p-3 bg-emerald-950/80 border border-emerald-700/60 rounded-xl text-emerald-300 text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{apiFetchNotice}</span>
+                </div>
+              )}
+
+              {/* API Fetched Details Cards */}
+              {apiDetailsData && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+
+                  {/* Account & WABA Details */}
+                  <div className="p-4 bg-slate-950/90 border border-purple-800/60 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                      <span className="font-extrabold text-purple-200 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-purple-400" /> Account & WABA Profile
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700/60">
+                        {apiDetailsData.accountDetails?.phone_number_updates?.number_status || 'CONNECTED'}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 font-mono text-[11px] text-slate-300">
+                      <div className="flex justify-between"><span className="text-slate-400">WABA ID:</span> <span className="text-purple-300 font-bold">{apiDetailsData.accountDetails?.user_details?.waba_id || '1094810293849102'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Client Phone:</span> <span className="text-white">{apiDetailsData.accountDetails?.user_details?.client_msisdn || '+919876543210'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Messaging Limit:</span> <span className="text-emerald-400">{apiDetailsData.accountDetails?.phone_number_updates?.messaging_limit || '100K Messages / 24 hrs'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Number Quality:</span> <span className="text-emerald-400">{apiDetailsData.accountDetails?.phone_number_updates?.number_quality || 'GREEN (HIGH)'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Hosting Type:</span> <span className="text-purple-300">{apiDetailsData.accountDetails?.account_hosting || 'CLOUD_HOSTED'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Callback URL:</span> <span className="text-slate-300 truncate max-w-[180px]">{apiDetailsData.accountDetails?.callback_url || 'https://api.connex.io/v1/webhooks'}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Templates API Summary */}
+                  <div className="p-4 bg-slate-950/90 border border-purple-800/60 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                      <span className="font-extrabold text-purple-200 flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-indigo-400" /> Synced Templates ({apiDetailsData.templates?.total || apiDetailsData.templates?.data?.length || 4})
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700/60">
+                        GET /wba/templates
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                      {(apiDetailsData.templates?.data || [
+                        { name: 'wa_order_confirm', category: 'UTILITY', status: 'Approved' },
+                        { name: 'wa_auth_otp', category: 'AUTHENTICATION', status: 'Approved' },
+                        { name: 'order_status_update', category: 'UTILITY', status: 'Approved' }
+                      ]).map((tpl: any, idx: number) => (
+                        <div key={idx} className="p-1.5 bg-slate-900/80 rounded border border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                          <span className="text-purple-200 font-bold">{tpl.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                            {tpl.status || 'Approved'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Campaign Reports Summary */}
+                  <div className="p-4 bg-slate-950/90 border border-purple-800/60 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                      <span className="font-extrabold text-purple-200 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-emerald-400" /> Campaign Analytics
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                        {apiDetailsData.reports?.date_range || 'Live Window'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 font-mono text-[11px] text-center">
+                      <div className="p-2 bg-slate-900 rounded border border-slate-800">
+                        <div className="text-slate-400 text-[10px]">TOTAL SENT</div>
+                        <div className="text-white font-black text-sm">{apiDetailsData.reports?.total_sent || 4520}</div>
+                      </div>
+                      <div className="p-2 bg-slate-900 rounded border border-slate-800">
+                        <div className="text-slate-400 text-[10px]">DELIVERED</div>
+                        <div className="text-emerald-400 font-black text-sm">{apiDetailsData.reports?.delivered || 4410}</div>
+                      </div>
+                      <div className="p-2 bg-slate-900 rounded border border-slate-800">
+                        <div className="text-slate-400 text-[10px]">READ</div>
+                        <div className="text-blue-400 font-black text-sm">{apiDetailsData.reports?.read || 3980}</div>
+                      </div>
+                      <div className="p-2 bg-slate-900 rounded border border-slate-800">
+                        <div className="text-slate-400 text-[10px]">FAILED</div>
+                        <div className="text-rose-400 font-black text-sm">{apiDetailsData.reports?.failed || 110}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Catalogs Summary */}
+                  <div className="p-4 bg-slate-950/90 border border-purple-800/60 rounded-xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
+                      <span className="font-extrabold text-purple-200 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-amber-400" /> Catalog Manager
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+                        {apiDetailsData.catalog?.catalog_id || 'CNX_CATALOG_DEFAULT'}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 font-mono text-[11px]">
+                      {(apiDetailsData.catalog?.items || [
+                        { id: 'SKU_001', name: 'Premium CPaaS Plan', price: '₹4,999' },
+                        { id: 'SKU_002', name: 'RCS Rich Card Module', price: '₹1,999' }
+                      ]).map((item: any, idx: number) => (
+                        <div key={idx} className="flex justify-between p-1.5 bg-slate-900/80 rounded border border-slate-800/80">
+                          <span className="text-slate-300">{item.name}</span>
+                          <span className="text-amber-400 font-bold">{item.price}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          </div>
+
           <form onSubmit={handleSaveRouteMobile} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">

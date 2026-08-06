@@ -222,5 +222,34 @@ export const routeMobileApi = {
 
   async getCatalogs(token?: string): Promise<any> {
     return this.getCatalogDetails('CNX_CATALOG_DEFAULT', 'name,price,availability,id,description,image_url', token);
+  },
+
+  // 13. Comprehensive token-based API Details Fetcher
+  async fetchAllDetails(token?: string): Promise<{
+    accountDetails: RmlAccountDetails | null;
+    templates: { total: number; data: RmlTemplate[] } | null;
+    reports: any;
+    templateCount: any;
+    catalog: any;
+  }> {
+    const authToken = token || this.getToken();
+    const today = new Date().toISOString().split('T')[0];
+    const prevWeek = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+    const [accountDetails, templatesRes, reportsRes, templateCountRes, catalogRes] = await Promise.allSettled([
+      this.getAccountDetails(authToken),
+      this.getTemplates(authToken),
+      this.getReports(prevWeek, today, authToken),
+      this.getTemplateCount(prevWeek, today, authToken),
+      this.getCatalogs(authToken)
+    ]);
+
+    return {
+      accountDetails: accountDetails.status === 'fulfilled' ? accountDetails.value : null,
+      templates: templatesRes.status === 'fulfilled' ? templatesRes.value : null,
+      reports: reportsRes.status === 'fulfilled' ? reportsRes.value : null,
+      templateCount: templateCountRes.status === 'fulfilled' ? templateCountRes.value : null,
+      catalog: catalogRes.status === 'fulfilled' ? catalogRes.value : null
+    };
   }
 };

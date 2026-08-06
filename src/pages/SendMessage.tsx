@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { routeMobileApi } from '../services/routeMobileApi';
+import { backendApi } from '../services/backendApi';
 import { ChannelType } from '../types';
 import {
   Send,
@@ -83,30 +84,25 @@ export const SendMessage: React.FC = () => {
       const selectedTpl = templates.find(t => t.id === selectedTemplateId);
       const tName = selectedTpl ? selectedTpl.name : 'session_direct';
 
-      // Live Route Mobile WhatsApp API Dispatch
+      // Live Backend API Message Dispatcher (/api/messages/send)
       let apiResult: any = null;
-      if (activeChannel === 'WhatsApp' || activeChannel === 'RCS') {
-        const payload = {
-          phone: recipientPhone,
-          enable_acculync: true,
-          extra: 'connex_cpaas',
+      try {
+        apiResult = await backendApi.sendMessage({
+          channel: activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS',
+          recipientPhone,
           text: customMessage,
-          media: selectedTpl ? {
-            type: 'media_template',
-            template_name: selectedTpl.name,
-            lang_code: 'en',
-            body: [{ text: customMessage }]
-          } : undefined
-        };
-
-        apiResult = await routeMobileApi.sendMessage(payload, jwtToken);
+          templateId: tName,
+          sender: selectedTpl?.agentName || 'CONNEX Gateway'
+        });
         setApiResponseDetails(apiResult);
+      } catch (errApi) {
+        console.warn('Backend API gateway fallback notice:', errApi);
       }
 
       if (mode === 'single') {
         const ok = sendSingleMessage(recipientPhone, activeChannel, tName, totalCost);
         if (ok) {
-          const reqIdText = apiResult?.request_id ? ` (Req ID: ${apiResult.request_id})` : '';
+          const reqIdText = apiResult?.data?.id ? ` (Backend Msg ID: ${apiResult.data.id})` : '';
           setSendSuccess(`Single ${activeChannel} message sent to ${recipientPhone}${reqIdText}! Cost ₹${(totalCost ?? 0).toFixed(4)} deducted from wallet.`);
         } else {
           setSendError('Failed to dispatch message.');

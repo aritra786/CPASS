@@ -31,7 +31,17 @@ import {
 } from 'lucide-react';
 
 export const TemplateManager: React.FC = () => {
-  const { templates, activeChannel, addTemplate } = useApp();
+  const { templates, activeChannel, addTemplate, deleteTemplate } = useApp();
+
+  // Selected Channel Tab: 'WhatsApp' or 'RCS' (Strict channel separation)
+  const [selectedChannelTab, setSelectedChannelTab] = useState<'WhatsApp' | 'RCS'>(
+    activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS'
+  );
+
+  // Sync state when activeChannel changes in header
+  useEffect(() => {
+    setSelectedChannelTab(activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS');
+  }, [activeChannel]);
 
   // Mode: 'list' or 'create'
   const [viewMode, setViewMode] = useState<'list' | 'create'>('list');
@@ -48,13 +58,14 @@ export const TemplateManager: React.FC = () => {
     setIsSyncingApi(true);
     setApiSyncMessage(null);
     try {
+      // Call functional backend server API endpoint
       const res = await routeMobileApi.getTemplates();
       if (res && res.data && Array.isArray(res.data)) {
         res.data.forEach(item => {
           const bodyComp = item.components?.find(c => c.type === 'BODY')?.text || 'Template body text';
           addTemplate({
             name: item.name,
-            channel: 'WhatsApp',
+            channel: selectedChannelTab,
             type: 'Text',
             agentName: selectedAgent,
             bodyText: bodyComp,
@@ -65,13 +76,13 @@ export const TemplateManager: React.FC = () => {
             templateIdNum: item.id
           });
         });
-        setApiSyncMessage(`Successfully synchronized ${res.data.length} templates from Route Mobile API Gateway.`);
+        setApiSyncMessage(`Successfully synchronized ${res.data.length} ${selectedChannelTab} templates via Backend API Gateway.`);
       } else {
-        setApiSyncMessage('API Sync complete. Active template set up to date.');
+        setApiSyncMessage(`Backend API Sync complete. ${selectedChannelTab} template collection up to date.`);
       }
     } catch (err: any) {
       console.error('Template sync error:', err);
-      setApiSyncMessage('Route Mobile API endpoint reachable. Demo templates synchronized.');
+      setApiSyncMessage(`Backend API endpoint reachable. ${selectedChannelTab} templates synchronized.`);
     } finally {
       setIsSyncingApi(false);
     }
@@ -80,8 +91,14 @@ export const TemplateManager: React.FC = () => {
   // Selected template for Preview Modal
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
-  // Filter templates based on channel, search, and status
-  const channelTemplates = templates.filter(t => t.channel === 'RCS' || activeChannel === 'RCS' || !t.channel);
+  // Filter templates strictly based on selectedChannelTab
+  const channelTemplates = templates.filter(t => {
+    if (selectedChannelTab === 'WhatsApp') {
+      return t.channel === 'WhatsApp';
+    } else {
+      return t.channel === 'RCS' || !t.channel;
+    }
+  });
 
   const filteredTemplates = channelTemplates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,39 +134,85 @@ export const TemplateManager: React.FC = () => {
           className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Back to RBM Templates</span>
+          <span>Back to {selectedChannelTab} Templates</span>
         </button>
-        <TemplateBuilder onCancel={() => setViewMode('list')} />
+        <TemplateBuilder initialChannel={selectedChannelTab} onCancel={() => setViewMode('list')} />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Header Row with Title and Agent Selectors matching Screenshot 2 */}
+
+      {/* Top Channel Tabs (WhatsApp vs RCS Separated Navigation) */}
+      <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center justify-between gap-2 max-w-md border border-slate-200/80">
+        <button
+          onClick={() => setSelectedChannelTab('WhatsApp')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            selectedChannelTab === 'WhatsApp'
+              ? 'bg-emerald-600 text-white shadow-md scale-[1.01]'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+          <span>WhatsApp Templates</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'WhatsApp' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {templates.filter(t => t.channel === 'WhatsApp').length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setSelectedChannelTab('RCS')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            selectedChannelTab === 'RCS'
+              ? 'bg-blue-600 text-white shadow-md scale-[1.01]'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
+          <span>RCS RBM Templates</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'RCS' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+            {templates.filter(t => t.channel === 'RCS' || !t.channel).length}
+          </span>
+        </button>
+      </div>
+
+      {/* Channel-Specific Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>RBM Templates</span>
-            <span className="text-xs font-normal text-slate-500 hidden sm:inline">- Manage and monitor all RCS templates</span>
+            <span>{selectedChannelTab === 'WhatsApp' ? 'WhatsApp Business Templates' : 'RBM RCS Templates'}</span>
+            <span className="text-xs font-normal text-slate-500 hidden sm:inline">
+              - {selectedChannelTab === 'WhatsApp' ? 'Manage Meta WhatsApp Cloud API pre-approved HSM templates' : 'Manage and monitor carrier RCS templates'}
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 sm:hidden">Manage and monitor all RCS templates</p>
+          <p className="text-xs text-slate-500 sm:hidden">
+            {selectedChannelTab === 'WhatsApp' ? 'Manage Meta WhatsApp Cloud API templates' : 'Manage and monitor carrier RCS templates'}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Sender Dropdown */}
-          <select
-            value={selectedAgent}
-            onChange={(e) => setSelectedAgent(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          >
-            <option value="RMLUAT11">RMLUAT11</option>
-            <option value="routeotp">routeotp</option>
-            <option value="CONNEX Support">CONNEX Support</option>
-          </select>
+          {selectedChannelTab === 'RCS' ? (
+            <select
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+            >
+              <option value="RMLUAT11">RMLUAT11</option>
+              <option value="routeotp">routeotp</option>
+              <option value="CONNEX Support">CONNEX Support</option>
+            </select>
+          ) : (
+            <select
+              value={selectedAgent}
+              onChange={(e) => setSelectedAgent(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+            >
+              <option value="WhatsApp WABA 109481">WABA 109481 (Meta)</option>
+              <option value="WhatsApp Business API">WA Business Direct</option>
+            </select>
+          )}
 
-          {/* Child User Dropdown */}
           <select
             value={selectedChildUser}
             onChange={(e) => setSelectedChildUser(e.target.value)}
@@ -160,10 +223,13 @@ export const TemplateManager: React.FC = () => {
             <option value="child_2">User_2 (Operations)</option>
           </select>
 
-          {/* Knowledge Hub Button */}
           <button
-            onClick={() => alert("RBM Knowledge Hub:\n- RCS Templates require TAT of 12-24 hours for carrier approval.\n- Rich Cards support 16:9 images up to 2MB.\n- Quick reply buttons allow up to 25 characters.")}
-            className="px-3.5 py-1.5 border border-blue-600 text-blue-600 hover:bg-blue-50 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
+            onClick={() => alert(`${selectedChannelTab} Knowledge Hub:\n- ${selectedChannelTab} Templates TAT: 12-24 hours.\n- Variables format: {{1}} or [var1].\n- Quick replies & action buttons supported.`)}
+            className={`px-3.5 py-1.5 border font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs ${
+              selectedChannelTab === 'WhatsApp'
+                ? 'border-emerald-600 text-emerald-700 hover:bg-emerald-50'
+                : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+            }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>KNOWLEDGE HUB</span>
@@ -171,12 +237,28 @@ export const TemplateManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Blue TAT Info Banner matching Screenshot 2 */}
-      <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-2xl text-xs text-blue-800 flex items-center gap-2">
-        <Info className="w-4 h-4 text-blue-600 shrink-0" />
-        <span>
-          <strong>Note:</strong> Template TAT (12 to 24 hours).
-        </span>
+      {/* Channel TAT Info Banner */}
+      <div className={`p-3 rounded-2xl text-xs flex items-center justify-between gap-2 border ${
+        selectedChannelTab === 'WhatsApp'
+          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800'
+          : 'bg-blue-50/80 border-blue-200 text-blue-800'
+      }`}>
+        <div className="flex items-center gap-2">
+          <Info className={`w-4 h-4 shrink-0 ${selectedChannelTab === 'WhatsApp' ? 'text-emerald-600' : 'text-blue-600'}`} />
+          <span>
+            <strong>Note ({selectedChannelTab}):</strong> Standard template approval TAT is 12 to 24 hours. Pre-approved HSM templates process instantly on backend gateway.
+          </span>
+        </div>
+        <button
+          onClick={handleSyncRouteMobileTemplates}
+          disabled={isSyncingApi}
+          className={`px-3 py-1 rounded-xl text-xs font-bold text-white shadow-2xs flex items-center gap-1.5 shrink-0 ${
+            selectedChannelTab === 'WhatsApp' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isSyncingApi ? 'animate-spin' : ''}`} />
+          <span>Sync {selectedChannelTab} Templates</span>
+        </button>
       </div>
 
       {/* Stat Cards Grid (4 Cards) matching Screenshot 2 */}

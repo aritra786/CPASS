@@ -20,6 +20,8 @@ import {
   CreditCard
 } from 'lucide-react';
 
+import { backendApi } from '../services/backendApi';
+
 interface CarouselCardItem {
   id: string;
   title: string;
@@ -32,16 +34,22 @@ interface CarouselCardItem {
 }
 
 interface TemplateBuilderProps {
+  initialChannel?: 'WhatsApp' | 'RCS';
   onCancel?: () => void;
 }
 
-export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) => {
+export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel, onCancel }) => {
   const { activeChannel, addTemplate, setActiveTab } = useApp();
+
+  // Selected Channel for the Template: WhatsApp vs RCS
+  const [templateChannel, setTemplateChannel] = useState<'WhatsApp' | 'RCS'>(
+    initialChannel || (activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS')
+  );
 
   // Form State
   const [templateName, setTemplateName] = useState('');
   const [templateType, setTemplateType] = useState<TemplateType>('Text');
-  const [agentName, setAgentName] = useState('Select Agent Name');
+  const [agentName, setAgentName] = useState(templateChannel === 'WhatsApp' ? 'WABA 109481 (Meta)' : 'Select Agent Name');
   const [messageOrder, setMessageOrder] = useState('Select Message Order');
 
   // Variables
@@ -153,7 +161,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
     setActions(prev => prev.map(a => a.id === id ? { ...a, [field]: val } : a));
   };
 
-  const handleSaveTemplate = (e: React.FormEvent) => {
+  const handleSaveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateName.trim()) {
       alert('Please enter a template name.');
@@ -164,17 +172,28 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
       return;
     }
 
-    addTemplate({
+    const newTplData = {
       name: templateName.toLowerCase().replace(/\s+/g, '_'),
-      channel: 'RCS',
+      channel: templateChannel,
       type: templateType,
       agentName,
       bodyText: bodyText || (templateType === 'Carousel' ? 'Carousel template' : 'Template body'),
       headerMediaUrl,
-      headerType: templateType === 'Rich Card' ? 'Image' : 'None',
+      headerType: (templateType === 'Rich Card' ? 'Image' : 'None') as 'Image' | 'Video' | 'None' | 'Document',
       variables,
-      actions
-    });
+      actions,
+      status: 'Approved' as const
+    };
+
+    // 1. Add locally to AppContext
+    addTemplate(newTplData);
+
+    // 2. Call backend server API endpoint
+    try {
+      await backendApi.saveTemplate(newTplData);
+    } catch (err) {
+      console.warn('Backend API save template notice:', err);
+    }
 
     setIsSaved(true);
     setTimeout(() => {
@@ -190,7 +209,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
   return (
     <div className="space-y-6">
 
-      {/* Top Header Row matching Screenshots 1, 2, 3, 4 */}
+      {/* Top Header Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <button
@@ -205,11 +224,14 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
           </button>
 
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Create RCS Template
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <span>Create {templateChannel} Template</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${templateChannel === 'WhatsApp' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
+                {templateChannel} Channel
+              </span>
             </h1>
             <p className="text-xs text-slate-500">
-              Build your message and preview it live on a mobile device
+              Build your {templateChannel} message template and preview live
             </p>
           </div>
         </div>
@@ -284,8 +306,30 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
               </div>
 
               {/* Form Row 1 */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 
+                {/* Channel Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Channel <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={templateChannel}
+                    onChange={(e) => {
+                      const newCh = e.target.value as 'WhatsApp' | 'RCS';
+                      setTemplateChannel(newCh);
+                      if (newCh === 'WhatsApp') setAgentName('WABA 109481 (Meta)');
+                      else setAgentName('RMLUAT11');
+                    }}
+                    className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 shadow-2xs ${
+                      templateChannel === 'WhatsApp' ? 'border-emerald-300 text-emerald-800 focus:ring-emerald-500' : 'border-blue-300 text-blue-800 focus:ring-blue-500'
+                    }`}
+                  >
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="RCS">RCS RBM</option>
+                  </select>
+                </div>
+
                 {/* Template Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -329,9 +373,18 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ onCancel }) =>
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                   >
                     <option value="Select Agent Name">Select Agent Name</option>
-                    <option value="RMLUAT11">RMLUAT11</option>
-                    <option value="routeotp">routeotp</option>
-                    <option value="CONNEX Support">CONNEX Support</option>
+                    {templateChannel === 'WhatsApp' ? (
+                      <>
+                        <option value="WABA 109481 (Meta)">WABA 109481 (Meta)</option>
+                        <option value="WhatsApp Business API">WA Business Direct</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="RMLUAT11">RMLUAT11</option>
+                        <option value="routeotp">routeotp</option>
+                        <option value="CONNEX Support">CONNEX Support</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

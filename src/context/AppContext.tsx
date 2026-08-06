@@ -607,13 +607,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTenant = (updatedTenant: TenantAccount) => {
-    setTenants(prev => prev.map(t => t.id === updatedTenant.id ? updatedTenant : t));
+    setTenants(prev => {
+      const next = prev.map(t => t.id === updatedTenant.id ? updatedTenant : t);
+      localStorage.setItem('connex_tenants', JSON.stringify(next));
+      return next;
+    });
     supabaseService.insertTenant(updatedTenant);
+
+    // Sync live user profile and panel if active tenant was modified
+    if (
+      updatedTenant.id === selectedAccountId ||
+      updatedTenant.accountId === selectedAccountId ||
+      (userProfile && (userProfile.accountId === updatedTenant.accountId || userProfile.email === updatedTenant.email))
+    ) {
+      const newProfile: UserProfile = {
+        name: updatedTenant.adminName || updatedTenant.companyName || 'Tenant User',
+        email: updatedTenant.email || 'user@connex.com',
+        role: 'Tenant Admin',
+        company: updatedTenant.companyName || 'Tenant Company',
+        accountId: updatedTenant.accountId
+      };
+      setUserProfile(newProfile);
+      setSelectedAccountId(updatedTenant.accountId);
+      setWalletBalance(updatedTenant.walletBalance ?? 0);
+
+      localStorage.setItem('connex_user_profile', JSON.stringify(newProfile));
+      localStorage.setItem('connex_selected_account_id', updatedTenant.accountId);
+      localStorage.setItem('connex_wallet_balance', (updatedTenant.walletBalance ?? 0).toString());
+    }
   };
 
   const deleteTenant = (id: string) => {
-    setTenants(prev => prev.filter(t => t.id !== id));
-    supabaseService.deleteTenant(id);
+    const targetTenant = tenants.find(t => t.id === id || t.accountId === id);
+    setTenants(prev => {
+      const next = prev.filter(t => t.id !== id && t.accountId !== id);
+      localStorage.setItem('connex_tenants', JSON.stringify(next));
+      return next;
+    });
+
+    if (targetTenant) {
+      supabaseService.deleteTenant(targetTenant.id);
+    }
+
+    // If active tenant was deleted, auto-switch to remaining or log out
+    if (
+      targetTenant && (
+        targetTenant.id === selectedAccountId ||
+        targetTenant.accountId === selectedAccountId ||
+        (userProfile && (userProfile.accountId === targetTenant.accountId || userProfile.email === targetTenant.email))
+      )
+    ) {
+      const remaining = tenants.filter(t => t.id !== id && t.accountId !== id);
+      if (remaining.length > 0) {
+        switchTenantAccount(remaining[0].id);
+      } else {
+        logoutUser();
+      }
+    }
   };
 
   const toggleTenantStatus = (tenantId: string) => {

@@ -1,15 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { routeMobileApi } from '../services/routeMobileApi';
-import { Key, Globe, Shield, Copy, Check, Server, Smartphone, Send, Terminal, CheckCircle2, RefreshCw, Zap } from 'lucide-react';
+import { Key, Globe, Shield, Copy, Check, Server, Smartphone, Send, Terminal, CheckCircle2, RefreshCw, Zap, Edit3, Trash2, User, Save, AlertTriangle } from 'lucide-react';
 
 export const ProfileManagement: React.FC = () => {
-  const { userProfile } = useApp();
+  const { userProfile, tenants, updateTenant, deleteTenant, walletBalance } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<'general' | 'meta' | 'google_rbm' | 'route_mobile'>('general');
 
   const [copiedKey, setCopiedKey] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('https://api.connex.io/v1/webhooks/status');
   const [savedWebhook, setSavedWebhook] = useState(false);
+
+  // Active Tenant Account details lookup
+  const currentTenant = tenants.find(t => t.accountId === userProfile?.accountId || t.email === userProfile?.email) || tenants[0];
+
+  // User Profile Form State
+  const [editName, setEditName] = useState(userProfile?.name || currentTenant?.adminName || '');
+  const [editEmail, setEditEmail] = useState(userProfile?.email || currentTenant?.email || '');
+  const [editCompany, setEditCompany] = useState(userProfile?.company || currentTenant?.companyName || '');
+  const [editPassword, setEditPassword] = useState(currentTenant?.accountPassword || '');
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileSaveNotice, setProfileSaveNotice] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (userProfile || currentTenant) {
+      setEditName(userProfile?.name || currentTenant?.adminName || '');
+      setEditEmail(userProfile?.email || currentTenant?.email || '');
+      setEditCompany(userProfile?.company || currentTenant?.companyName || '');
+      setEditPassword(currentTenant?.accountPassword || '');
+    }
+  }, [userProfile, currentTenant]);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentTenant) return;
+
+    const updated = {
+      ...currentTenant,
+      adminName: editName,
+      email: editEmail,
+      companyName: editCompany,
+      accountPassword: editPassword || currentTenant.accountPassword
+    };
+
+    updateTenant(updated);
+    setIsEditingProfile(false);
+    setProfileSaveNotice('Profile & account details updated successfully! Synchronized across Admin and User panels.');
+    setTimeout(() => setProfileSaveNotice(null), 4000);
+  };
+
+  const handleDeleteUserAccount = () => {
+    if (!currentTenant) return;
+    deleteTenant(currentTenant.id);
+  };
 
   // Meta WhatsApp Cloud API State
   const [metaWabaId, setMetaWabaId] = useState('1094810293849102');
@@ -160,15 +205,207 @@ export const ProfileManagement: React.FC = () => {
       {/* TAB 1: General Credentials & Webhooks */}
       {activeSubTab === 'general' && (
         <div className="space-y-6">
-          {/* Tenant Account Overview */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
-            <h3 className="font-extrabold text-sm text-slate-900 border-b pb-2">Tenant Account Overview</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-              <div>Company: <strong className="block text-slate-900 font-bold">{userProfile.company}</strong></div>
-              <div>Account ID: <strong className="block text-blue-700 font-bold">{userProfile.accountId}</strong></div>
-              <div>Role: <strong className="block text-slate-900 font-bold">{userProfile.role}</strong></div>
+          {/* Profile Save Notice Banner */}
+          {profileSaveNotice && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between text-xs font-bold shadow-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{profileSaveNotice}</span>
+              </div>
+              <button
+                onClick={() => setProfileSaveNotice(null)}
+                className="text-emerald-500 hover:text-emerald-800 text-xs font-bold"
+              >
+                ✕
+              </button>
             </div>
+          )}
+
+          {/* Tenant Account Overview & Profile Settings */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">User Account Profile & Settings</h3>
+                <p className="text-[11px] text-slate-500">Manage account details, email, company profile, and credentials</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsEditingProfile(!isEditingProfile)}
+                  className="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 hover:bg-indigo-100 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{isEditingProfile ? 'Cancel Edit' : 'Edit Profile'}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3 py-1.5 text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Delete Account</span>
+                </button>
+              </div>
+            </div>
+
+            {!isEditingProfile ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Admin Contact Name</span>
+                  <strong className="block text-slate-900 font-bold text-sm">{userProfile?.name || currentTenant?.adminName || 'Tenant User'}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Contact Email</span>
+                  <strong className="block text-slate-900 font-bold text-sm truncate">{userProfile?.email || currentTenant?.email || 'user@connex.com'}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Company Name</span>
+                  <strong className="block text-indigo-700 font-bold text-sm">{userProfile?.company || currentTenant?.companyName || 'Tenant Company'}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Account ID</span>
+                  <strong className="block font-mono text-blue-700 font-bold text-sm">{userProfile?.accountId || currentTenant?.accountId || 'N/A'}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Channel User Type</span>
+                  <strong className="block text-emerald-700 font-bold">{currentTenant?.userType || 'WhatsApp'}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Wallet Balance</span>
+                  <strong className="block font-mono text-emerald-600 font-extrabold text-sm">₹{(walletBalance ?? currentTenant?.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">Account Status</span>
+                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                    {currentTenant?.status || 'Active'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                  <span className="text-slate-400 font-medium">User Role</span>
+                  <strong className="block text-slate-800 font-bold">{userProfile?.role || 'Tenant Admin'}</strong>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveProfile} className="space-y-3.5 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Admin Contact Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">User Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Company Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editCompany}
+                      onChange={(e) => setEditCompany(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Account Password</label>
+                    <input
+                      type="text"
+                      required
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Profile Changes</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
+
+          {/* Delete Account Confirmation Modal (User Panel) */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+              <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-slate-200 space-y-4">
+                <div className="flex items-center gap-3 text-rose-600 border-b pb-3">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">Delete Your Account</h3>
+                    <p className="text-xs text-rose-600 font-semibold">Irreversible action</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs text-slate-600">
+                  <p>
+                    Are you sure you want to delete your tenant account <strong className="text-slate-900 font-bold">{userProfile?.company}</strong> ({userProfile?.accountId})?
+                  </p>
+                  
+                  <p className="p-2.5 bg-rose-50 text-rose-800 rounded-xl border border-rose-200/80 text-[11px]">
+                    Deleting your account will immediately remove access, clear saved credentials, and remove your tenant record from the database.
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteUserAccount}
+                    className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete My Account</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Supabase Connection Status */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">

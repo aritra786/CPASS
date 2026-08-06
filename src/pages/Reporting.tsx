@@ -10,10 +10,11 @@ export const Reporting: React.FC = () => {
   const [startDate, setStartDate] = useState('2026-07-07');
   const [endDate, setEndDate] = useState('2026-08-06');
 
-  const filteredLogs = messageLogs.filter(m => {
+  const filteredLogs = (messageLogs || []).filter(m => {
+    const query = (search || '').toLowerCase();
     const matchesSearch =
-      m.recipientPhone.includes(search) ||
-      m.templateName.toLowerCase().includes(search.toLowerCase());
+      (m.recipientPhone || '').toLowerCase().includes(query) ||
+      (m.templateName || '').toLowerCase().includes(query);
     const matchesStatus = statusFilter === 'ALL' || m.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

@@ -114,28 +114,33 @@ export const AdminUsers: React.FC = () => {
   };
 
   // Filter Tenants by Search and Segregation Tab
-  const filteredTenants = tenants.filter(t => {
+  const filteredTenants = (tenants || []).filter(t => {
+    const query = (search || '').toLowerCase();
     const matchesSearch =
-      t.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      t.accountId.toLowerCase().includes(search.toLowerCase()) ||
-      t.email.toLowerCase().includes(search.toLowerCase());
+      (t.companyName || '').toLowerCase().includes(query) ||
+      (t.accountId || '').toLowerCase().includes(query) ||
+      (t.email || '').toLowerCase().includes(query) ||
+      (t.adminName || '').toLowerCase().includes(query);
 
     if (!matchesSearch) return false;
 
+    const channels = t.channels || [];
+    const userType = t.userType || '';
+
     if (segregationTab === 'ALL') return true;
-    if (segregationTab === 'WhatsApp') return t.userType === 'WhatsApp' || (t.userType === 'Both' || t.channels.includes('WhatsApp'));
-    if (segregationTab === 'RCS') return t.userType === 'RCS' || (t.userType === 'Both' || t.channels.includes('RCS'));
-    if (segregationTab === 'Both') return t.userType === 'Both' || (t.channels.includes('WhatsApp') && t.channels.includes('RCS'));
+    if (segregationTab === 'WhatsApp') return userType === 'WhatsApp' || userType === 'Both' || channels.includes('WhatsApp');
+    if (segregationTab === 'RCS') return userType === 'RCS' || userType === 'Both' || channels.includes('RCS');
+    if (segregationTab === 'Both') return userType === 'Both' || (channels.includes('WhatsApp') && channels.includes('RCS'));
 
     return true;
   });
 
   // KPI Metrics
-  const totalAccounts = tenants.length;
-  const whatsappCount = tenants.filter(t => t.userType === 'WhatsApp' || t.channels.includes('WhatsApp')).length;
-  const rcsCount = tenants.filter(t => t.userType === 'RCS' || t.channels.includes('RCS')).length;
-  const bothCount = tenants.filter(t => t.userType === 'Both' || (t.channels.includes('WhatsApp') && t.channels.includes('RCS'))).length;
-  const totalBalance = tenants.reduce((acc, t) => acc + t.walletBalance, 0);
+  const totalAccounts = (tenants || []).length;
+  const whatsappCount = (tenants || []).filter(t => t.userType === 'WhatsApp' || (t.channels && t.channels.includes('WhatsApp'))).length;
+  const rcsCount = (tenants || []).filter(t => t.userType === 'RCS' || (t.channels && t.channels.includes('RCS'))).length;
+  const bothCount = (tenants || []).filter(t => t.userType === 'Both' || (t.channels && t.channels.includes('WhatsApp') && t.channels.includes('RCS'))).length;
+  const totalBalance = (tenants || []).reduce((acc, t) => acc + (t.walletBalance || 0), 0);
 
   return (
     <div className="space-y-6">

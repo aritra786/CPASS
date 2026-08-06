@@ -49,7 +49,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     RCS: true,
     WhatsApp: true,
     Viber: false,
-    Acculync: false
+    Acculync: false,
+    'SMS Fallback': false,
+    SMS: false
   });
 
   const toggleChannel = (ch: ChannelType) => {
@@ -173,6 +175,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Quick Admin Portal Route Access */}
+              <div className="mt-6 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => {
+                    setPortalMode('admin');
+                    setActiveTab('Admin Dashboard');
+                    if (window.innerWidth < 1024) setSidebarOpen(false);
+                  }}
+                  className="w-full px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl font-bold text-xs flex items-center justify-between transition-colors shadow-2xs group"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-indigo-600 group-hover:scale-110 transition-transform" />
+                    <span>Admin Portal</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 bg-indigo-200/60 text-indigo-900 rounded font-semibold">
+                    /admin
+                  </span>
+                </button>
               </div>
             </div>
           ) : (

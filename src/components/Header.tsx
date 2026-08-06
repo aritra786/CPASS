@@ -253,8 +253,6 @@ export const Header: React.FC<HeaderProps> = ({
                       onClick={() => {
                         setPortalMode('user');
                         setProfileMenuOpen(false);
-                        window.history.pushState({}, '', '/');
-                        window.dispatchEvent(new Event('popstate'));
                       }}
                       className="w-full text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2"
                     >
@@ -262,9 +260,26 @@ export const Header: React.FC<HeaderProps> = ({
                       <span>Return to User Portal (/)</span>
                     </button>
                   ) : (
-                    <div className="px-3 py-1.5 text-xs font-medium text-slate-500">
-                      Company: <span className="font-bold text-slate-800">{userProfile.company}</span>
-                    </div>
+                    <>
+                      <div className="px-3 py-1 text-xs font-medium text-slate-500">
+                        Company: <span className="font-bold text-slate-800">{userProfile.company}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setPortalMode('admin');
+                          setProfileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-lg flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-indigo-600" />
+                          <span>Switch to Admin Portal</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded">
+                          /admin
+                        </span>
+                      </button>
+                    </>
                   )}
                 </div>
 

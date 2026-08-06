@@ -262,7 +262,25 @@ const initialMessageLogs: MessageLog[] = [
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [portalMode, setPortalMode] = useState<'user' | 'admin'>('user');
+  const [portalMode, setPortalModeState] = useState<'user' | 'admin'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') return 'admin';
+    }
+    return 'user';
+  });
+
+  const setPortalMode = (mode: 'user' | 'admin') => {
+    setPortalModeState(mode);
+    if (typeof window !== 'undefined') {
+      const targetPath = mode === 'admin' ? '/admin' : '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, '', targetPath);
+        window.dispatchEvent(new Event('popstate'));
+      }
+    }
+  };
   const [activeChannel, setActiveChannel] = useState<ChannelType>('RCS');
   const [activeTab, setActiveTab] = useState<string>('Dashboard');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('RMLUAT11');
@@ -542,7 +560,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const pauseCampaign = (id: string) => {
     setCampaigns(prev => prev.map(c => {
       if (c.id === id) {
-        const updated = { ...c, status: c.status === 'Running' ? 'Paused' : 'Running' };
+        const nextStatus: Campaign['status'] = c.status === 'Running' ? 'Paused' : 'Running';
+        const updated: Campaign = { ...c, status: nextStatus };
         supabaseService.insertCampaign(updated);
         return updated;
       }

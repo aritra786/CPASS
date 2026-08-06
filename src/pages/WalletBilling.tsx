@@ -44,11 +44,12 @@ export const WalletBilling: React.FC<WalletBillingProps> = ({ onOpenAddFunds }) 
     setTimeout(() => setSavedAuto(false), 2000);
   };
 
-  const filteredTxns = transactions.filter(t => {
+  const filteredTxns = (transactions || []).filter(t => {
+    const query = (search || '').toLowerCase();
     const matchesSearch =
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.description.toLowerCase().includes(search.toLowerCase()) ||
-      t.referenceId.toLowerCase().includes(search.toLowerCase());
+      (t.id || '').toLowerCase().includes(query) ||
+      (t.description || '').toLowerCase().includes(query) ||
+      (t.referenceId || '').toLowerCase().includes(query);
     const matchesType = typeFilter === 'ALL' || t.type === typeFilter;
     return matchesSearch && matchesType;
   });

@@ -26,7 +26,7 @@ export const OptInManager: React.FC = () => {
     setOptInList(prev => prev.map(item => item.id === id ? { ...item, status: item.status === 'Subscribed' ? 'Unsubscribed' : 'Subscribed' } : item));
   };
 
-  const filtered = optInList.filter(o => o.phone.includes(search));
+  const filtered = (optInList || []).filter(o => (o.phone || '').includes(search || ''));
 
   return (
     <div className="space-y-6">

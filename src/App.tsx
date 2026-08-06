@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { SubNavTabs } from './components/SubNavTabs';
@@ -162,8 +163,10 @@ const MainAppLayout: React.FC = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainAppLayout />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <MainAppLayout />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

@@ -1,0 +1,6 @@
+{
+  "name": "CONNEX CPaaS",
+  "description": "Enterprise CPaaS platform for RCS, WhatsApp, Viber, and Acculync omnichannel messaging, template building, and wallet billing management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

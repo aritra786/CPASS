@@ -21,9 +21,10 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminUsers } from './pages/admin/AdminUsers';
 import { AdminRates } from './pages/admin/AdminRates';
 import { AdminAuthGate } from './pages/admin/AdminAuthGate';
+import { UserAuthGate } from './pages/UserAuthGate';
 
 const MainAppLayout: React.FC = () => {
-  const { portalMode, setPortalMode, activeTab } = useApp();
+  const { portalMode, setPortalMode, activeTab, isUserLoggedIn } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFundsOpen, setAddFundsOpen] = useState(false);
 
@@ -73,17 +74,23 @@ const MainAppLayout: React.FC = () => {
   };
 
   // Render view based on activeTab and portalMode
+  if (currentRoute === '/admin' || portalMode === 'admin') {
+    if (adminAuthEmail !== 'aritra.sardar2805@gmail.com') {
+      return (
+        <AdminAuthGate
+          onAuthenticateSuccess={handleAdminSuccess}
+          onReturnToUserPortal={handleReturnToUser}
+        />
+      );
+    }
+  }
+
+  if (portalMode !== 'admin' && !isUserLoggedIn) {
+    return <UserAuthGate onGoToAdmin={() => setPortalMode('admin')} />;
+  }
+
   const renderMainView = () => {
     if (currentRoute === '/admin' || portalMode === 'admin') {
-      if (adminAuthEmail !== 'aritra.sardar2805@gmail.com') {
-        return (
-          <AdminAuthGate
-            onAuthenticateSuccess={handleAdminSuccess}
-            onReturnToUserPortal={handleReturnToUser}
-          />
-        );
-      }
-
       switch (activeTab) {
         case 'Admin Users':
           return <AdminUsers />;

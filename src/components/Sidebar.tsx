@@ -41,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     activeChannel,
     setActiveChannel,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    logoutUser
   } = useApp();
 
   // Track expanded channels
@@ -260,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar Footer Logout Button */}
         <div className="p-3 border-t border-slate-200 bg-slate-50/50">
           <button
-            onClick={() => alert("Logged out of CONNEX CPaaS platform.")}
+            onClick={() => logoutUser()}
             className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
             id="sidebar-logout-btn"
           >

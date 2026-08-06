@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { CheckCircle2, UserX, Plus, Trash2, Search, ShieldCheck } from 'lucide-react';
 
 export const OptInManager: React.FC = () => {
-  const [optInList, setOptInList] = useState([
-    { id: '1', phone: '+91 98765 43210', channel: 'WhatsApp', optInDate: '2026-07-15', status: 'Subscribed' },
-    { id: '2', phone: '+1 415 555 2671', channel: 'RCS', optInDate: '2026-07-20', status: 'Subscribed' },
-    { id: '3', phone: '+44 7911 123456', channel: 'Viber', optInDate: '2026-08-01', status: 'Unsubscribed' },
-    { id: '4', phone: '+91 91234 56789', channel: 'RCS', optInDate: '2026-08-03', status: 'Subscribed' }
-  ]);
+  const [optInList, setOptInList] = useState<{ id: string; phone: string; channel: string; optInDate: string; status: string }[]>(() => {
+    const saved = localStorage.getItem('connex_optin_list');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [newPhone, setNewPhone] = useState('');
   const [search, setSearch] = useState('');
@@ -15,15 +13,17 @@ export const OptInManager: React.FC = () => {
   const handleAddPhone = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPhone.trim()) return;
-    setOptInList(prev => [
-      { id: Date.now().toString(), phone: newPhone.trim(), channel: 'WhatsApp', optInDate: new Date().toISOString().split('T')[0], status: 'Subscribed' },
-      ...prev
-    ]);
+    const newItem = { id: Date.now().toString(), phone: newPhone.trim(), channel: 'WhatsApp', optInDate: new Date().toISOString().split('T')[0], status: 'Subscribed' };
+    const updated = [newItem, ...optInList];
+    setOptInList(updated);
+    localStorage.setItem('connex_optin_list', JSON.stringify(updated));
     setNewPhone('');
   };
 
   const handleToggle = (id: string) => {
-    setOptInList(prev => prev.map(item => item.id === id ? { ...item, status: item.status === 'Subscribed' ? 'Unsubscribed' : 'Subscribed' } : item));
+    const updated = optInList.map(item => item.id === id ? { ...item, status: item.status === 'Subscribed' ? 'Unsubscribed' : 'Subscribed' } : item);
+    setOptInList(updated);
+    localStorage.setItem('connex_optin_list', JSON.stringify(updated));
   };
 
   const filtered = (optInList || []).filter(o => (o.phone || '').includes(search || ''));

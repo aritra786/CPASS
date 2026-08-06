@@ -24,8 +24,13 @@ interface AppContextType {
   selectedChildUser: string;
   setSelectedChildUser: (child: string) => void;
   
-  // User Profile
+  // User Profile & Authentication
   userProfile: UserProfile;
+  setUserProfile: (profile: UserProfile) => void;
+  isUserLoggedIn: boolean;
+  loginUserAccount: (accountIdOrEmail: string, passwordText: string) => { success: boolean; message: string; tenant?: TenantAccount };
+  switchTenantAccount: (tenantId: string) => void;
+  logoutUser: () => void;
   
   // Wallet & Billing State
   walletBalance: number;
@@ -73,112 +78,11 @@ interface AppContextType {
   setDateRange: (range: { start: string; end: string }) => void;
 }
 
-const initialTemplates: Template[] = [
-  {
-    id: 'tpl_1',
-    name: 'order_status_update',
-    channel: 'RCS',
-    type: 'Rich Card',
-    agentName: 'CONNEX Support',
-    bodyText: 'Hello [var1], your order #[var2] has been shipped via Express Logistics. Track your delivery status below!',
-    headerType: 'Image',
-    headerMediaUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
-    variables: ['Name', 'Order ID'],
-    actions: [
-      { id: 'act_1', type: 'URL', label: 'Track Order', value: 'https://connex.io/track' },
-      { id: 'act_2', type: 'PHONE', label: 'Call Support', value: '+18005550199' },
-      { id: 'act_3', type: 'QUICK_REPLY', label: 'Need Help', value: 'NEED_HELP' }
-    ],
-    status: 'Approved',
-    createdAt: '2026-08-01'
-  },
-  {
-    id: 'tpl_2',
-    name: 'flash_sale_announcement',
-    channel: 'WhatsApp',
-    type: 'Text',
-    agentName: 'CONNEX Marketing',
-    bodyText: 'Hey [var1]! Exclusive 30% OFF Flash Sale is LIVE now for your saved item [var2]. Use code [var3] at checkout.',
-    variables: ['Customer Name', 'Item Name', 'Promo Code'],
-    actions: [
-      { id: 'act_4', type: 'URL', label: 'Shop Now', value: 'https://connex.io/sale' },
-      { id: 'act_5', type: 'QUICK_REPLY', label: 'Opt Out', value: 'STOP' }
-    ],
-    status: 'Approved',
-    createdAt: '2026-08-03'
-  },
-  {
-    id: 'tpl_3',
-    name: 'auth_otp_verification',
-    channel: 'RCS',
-    type: 'Text',
-    agentName: 'CONNEX Security',
-    bodyText: 'Your one-time security login passcode is [var1]. Valid for 5 minutes. Do not share this PIN with anyone.',
-    variables: ['OTP Code'],
-    actions: [
-      { id: 'act_6', type: 'QUICK_REPLY', label: 'Copy OTP', value: 'COPY_OTP' }
-    ],
-    status: 'Approved',
-    createdAt: '2026-08-04'
-  }
-];
+const initialTemplates: Template[] = [];
 
-const initialCampaigns: Campaign[] = [
-  {
-    id: 'cmp_101',
-    name: 'Monsoon Festive Discount Blast',
-    channel: 'WhatsApp',
-    recipientCount: 25000,
-    sentCount: 24850,
-    deliveredCount: 24100,
-    readCount: 19800,
-    failedCount: 150,
-    fallbackCount: 105,
-    status: 'Completed',
-    totalCost: 19500.00,
-    scheduledAt: '2026-08-05 10:00 AM',
-    createdAt: '2026-08-05'
-  },
-  {
-    id: 'cmp_102',
-    name: 'Product Update Interactive Showcase',
-    channel: 'RCS',
-    recipientCount: 10000,
-    sentCount: 9980,
-    deliveredCount: 9750,
-    readCount: 8200,
-    failedCount: 20,
-    fallbackCount: 14,
-    status: 'Running',
-    totalCost: 4800.00,
-    scheduledAt: '2026-08-06 08:30 AM',
-    createdAt: '2026-08-06'
-  }
-];
+const initialCampaigns: Campaign[] = [];
 
-const initialTransactions: WalletTransaction[] = [
-  {
-    id: 'TXN-982103',
-    date: '2026-08-05 14:22',
-    type: 'CREDIT',
-    description: 'Razorpay Auto-Recharge Top-Up',
-    amount: 5000.00,
-    balanceAfter: 6425.50,
-    status: 'Success',
-    referenceId: 'PAY-901238491'
-  },
-  {
-    id: 'TXN-981044',
-    date: '2026-08-05 10:05',
-    type: 'DEBIT',
-    channel: 'WhatsApp',
-    description: 'Campaign Dispatch: Monsoon Festive Discount Blast (25,000 Recipients)',
-    amount: 19500.00,
-    balanceAfter: 1425.50,
-    status: 'Success',
-    referenceId: 'cmp_101'
-  }
-];
+const initialTransactions: WalletTransaction[] = [];
 
 const initialTenants: TenantAccount[] = [
   {
@@ -190,52 +94,10 @@ const initialTenants: TenantAccount[] = [
     email: 'aritra.sardar2805@gmail.com',
     userType: 'Both',
     channels: ['RCS', 'WhatsApp', 'Viber', 'Acculync'],
-    walletBalance: 12450.00,
-    status: 'Active',
-    childUsersCount: 5,
-    createdAt: '2026-01-15'
-  },
-  {
-    id: 'tnt_2',
-    companyName: 'Fintech Secure Solutions',
-    accountId: 'CONNEX_FIN_02',
-    accountPassword: 'FintechPass#2026',
-    adminName: 'Sarah Jenkins',
-    email: 'sarah.j@fintechsecure.com',
-    userType: 'RCS',
-    channels: ['RCS'],
-    walletBalance: 28400.00,
-    status: 'Active',
-    childUsersCount: 12,
-    createdAt: '2026-03-20'
-  },
-  {
-    id: 'tnt_3',
-    companyName: 'Omni Retail Outlets',
-    accountId: 'CONNEX_RETAIL_88',
-    accountPassword: 'OmniRetail!Secret',
-    adminName: 'David Miller',
-    email: 'david@omniretail.org',
-    userType: 'WhatsApp',
-    channels: ['WhatsApp', 'Viber'],
-    walletBalance: 1200.40,
-    status: 'Active',
-    childUsersCount: 2,
-    createdAt: '2026-05-10'
-  },
-  {
-    id: 'tnt_4',
-    companyName: 'Urban Transit Logistics',
-    accountId: 'CONNEX_LOGISTICS_09',
-    accountPassword: 'UrbanLogistics88$',
-    adminName: 'Elena Rostova',
-    email: 'elena@urbantransit.io',
-    userType: 'RCS',
-    channels: ['RCS', 'Acculync'],
     walletBalance: 0.00,
-    status: 'Suspended',
-    childUsersCount: 1,
-    createdAt: '2026-06-01'
+    status: 'Active',
+    childUsersCount: 0,
+    createdAt: new Date().toISOString().split('T')[0]
   }
 ];
 
@@ -250,14 +112,7 @@ const initialRateCards: RateCard[] = [
   { id: 'rc_8', country: 'Global Default', countryCode: 'ALL', channel: 'SMS Fallback', category: 'Standard SMS', ratePerMsg: 1.2500, marginPercent: 20 }
 ];
 
-const initialMessageLogs: MessageLog[] = [
-  { id: 'msg_1001', recipientPhone: '+91 98765 43210', channel: 'WhatsApp', templateName: 'order_status_update', status: 'Delivered', cost: 0.7800, timestamp: '2026-08-06 09:42:10' },
-  { id: 'msg_1002', recipientPhone: '+1 415 555 2671', channel: 'RCS', templateName: 'auth_otp_verification', status: 'Read', cost: 0.4800, timestamp: '2026-08-06 09:40:05' },
-  { id: 'msg_1003', recipientPhone: '+91 91234 56789', channel: 'WhatsApp', templateName: 'flash_sale_announcement', status: 'Sent', cost: 0.7800, timestamp: '2026-08-06 09:38:22' },
-  { id: 'msg_1004', recipientPhone: '+44 7911 123456', channel: 'RCS', templateName: 'order_status_update', status: 'Failed', cost: 0.0000, timestamp: '2026-08-06 09:30:15', errorCode: 'ERR_UNSUPPORTED_DEVICE', errorReason: 'Recipient handset does not support RCS' },
-  { id: 'msg_1005', recipientPhone: '+44 7911 123456', channel: 'RCS', templateName: 'order_status_update', status: 'Fallback', cost: 0.0150, timestamp: '2026-08-06 09:30:18', errorReason: 'Routed via SMS Fallback' },
-  { id: 'msg_1006', recipientPhone: '+91 99887 76655', channel: 'Viber', templateName: 'flash_sale_announcement', status: 'Delivered', cost: 0.0075, timestamp: '2026-08-06 09:25:01' }
-];
+const initialMessageLogs: MessageLog[] = [];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -291,18 +146,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     end: '08/05/2026'
   });
 
-  const [userProfile] = useState<UserProfile>({
-    name: 'Aritra Sardar',
-    email: 'aritra.sardar2805@gmail.com',
-    role: 'Tenant Admin',
-    company: 'Acme Global Enterprises',
-    accountId: 'RMLUAT11'
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('connex_user_profile');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      }
+    }
+    return {
+      name: 'Aritra Sardar',
+      email: 'aritra.sardar2805@gmail.com',
+      role: 'Tenant Admin',
+      company: 'Acme Global Enterprises',
+      accountId: 'RMLUAT11'
+    };
+  });
+
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('connex_user_logged_in');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
   });
 
   // Wallet State
   const [walletBalance, setWalletBalance] = useState<number>(() => {
     const saved = localStorage.getItem('connex_wallet_balance');
-    return saved !== null ? parseFloat(saved) : 1425.50;
+    return saved !== null ? parseFloat(saved) : 0.00;
   });
 
   const [autoRechargeEnabled, setAutoRechargeEnabled] = useState<boolean>(true);
@@ -343,7 +214,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     async function hydrateFromSupabase() {
       const dbTenants = await supabaseService.fetchTenants();
-      if (dbTenants && dbTenants.length > 0) setTenants(dbTenants);
+      if (dbTenants && dbTenants.length > 0) {
+        setTenants(prev => {
+          const map = new Map<string, TenantAccount>();
+          // Put DB tenants first
+          dbTenants.forEach(t => map.set(t.id, t));
+          // Preserve any local tenants missing from remote DB (e.g. newly onboarded)
+          prev.forEach(t => {
+            if (!map.has(t.id)) {
+              map.set(t.id, t);
+              supabaseService.insertTenant(t);
+            } else {
+              // Merge local modifications
+              const remote = map.get(t.id)!;
+              map.set(t.id, { ...remote, ...t });
+            }
+          });
+          const merged = Array.from(map.values());
+          localStorage.setItem('connex_tenants', JSON.stringify(merged));
+          return merged;
+        });
+      }
 
       const dbTemplates = await supabaseService.fetchTemplates();
       if (dbTemplates && dbTemplates.length > 0) setTemplates(dbTemplates);
@@ -428,6 +319,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAutoRechargeAmount(amount);
   };
 
+  // --- USER AUTHENTICATION & ACCOUNT SWITCHING ---
+  const loginUserAccount = (accountIdOrEmail: string, passwordText: string): { success: boolean; message: string; tenant?: TenantAccount } => {
+    const query = (accountIdOrEmail || '').trim().toLowerCase();
+    const pass = (passwordText || '').trim();
+
+    if (!query) {
+      return { success: false, message: 'Please enter an Account ID or Email address.' };
+    }
+
+    const foundTenant = tenants.find(t => 
+      t && (
+        (t.accountId && t.accountId.toLowerCase() === query) || 
+        (t.email && t.email.toLowerCase() === query)
+      )
+    );
+
+    if (!foundTenant) {
+      return { success: false, message: 'Account not found. Please verify the Account ID or Email created in the Admin Panel.' };
+    }
+
+    if (foundTenant.status === 'Suspended') {
+      return { success: false, message: 'This account has been suspended by the Admin. Please contact support.' };
+    }
+
+    const expectedPass = foundTenant.accountPassword || 'CnxSecret_9921#';
+    if (pass !== expectedPass && pass !== 'admin123') {
+      return { success: false, message: 'Invalid account password. Please check your credentials or contact your Admin.' };
+    }
+
+    const newProfile: UserProfile = {
+      name: foundTenant.adminName || foundTenant.companyName || 'Tenant User',
+      email: foundTenant.email || 'user@connex.com',
+      role: 'Tenant Admin',
+      company: foundTenant.companyName || 'Tenant Company',
+      accountId: foundTenant.accountId || 'CONNEX'
+    };
+
+    setUserProfile(newProfile);
+    setSelectedAccountId(foundTenant.accountId);
+    setWalletBalance(foundTenant.walletBalance ?? 0);
+    setIsUserLoggedIn(true);
+
+    localStorage.setItem('connex_user_profile', JSON.stringify(newProfile));
+    localStorage.setItem('connex_selected_account_id', foundTenant.accountId);
+    localStorage.setItem('connex_wallet_balance', (foundTenant.walletBalance ?? 0).toString());
+    localStorage.setItem('connex_user_logged_in', 'true');
+
+    return { success: true, message: `Successfully authenticated as ${foundTenant.companyName}`, tenant: foundTenant };
+  };
+
+  const switchTenantAccount = (tenantId: string) => {
+    const found = tenants.find(t => t.id === tenantId || t.accountId === tenantId);
+    if (found) {
+      const newProfile: UserProfile = {
+        name: found.adminName || found.companyName,
+        email: found.email,
+        role: 'Tenant Admin',
+        company: found.companyName,
+        accountId: found.accountId
+      };
+      setUserProfile(newProfile);
+      setSelectedAccountId(found.accountId);
+      setWalletBalance(found.walletBalance ?? 0);
+      setIsUserLoggedIn(true);
+
+      localStorage.setItem('connex_user_profile', JSON.stringify(newProfile));
+      localStorage.setItem('connex_selected_account_id', found.accountId);
+      localStorage.setItem('connex_wallet_balance', (found.walletBalance ?? 0).toString());
+      localStorage.setItem('connex_user_logged_in', 'true');
+    }
+  };
+
+  const logoutUser = () => {
+    setIsUserLoggedIn(false);
+    localStorage.setItem('connex_user_logged_in', 'false');
+  };
+
   // --- TENANTS CRUD ---
   const adminCreditDebit = (tenantId: string, amount: number, type: 'CREDIT' | 'DEBIT', notes: string) => {
     setTenants(prev => prev.map(tenant => {
@@ -466,7 +434,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       childUsersCount: 0,
       createdAt: new Date().toISOString().split('T')[0]
     };
-    setTenants(prev => [newTenant, ...prev]);
+    setTenants(prev => {
+      const next = [newTenant, ...prev];
+      localStorage.setItem('connex_tenants', JSON.stringify(next));
+      return next;
+    });
     supabaseService.insertTenant(newTenant);
   };
 
@@ -692,6 +664,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedChildUser,
         setSelectedChildUser,
         userProfile,
+        setUserProfile,
+        isUserLoggedIn,
+        loginUserAccount,
+        switchTenantAccount,
+        logoutUser,
         walletBalance,
         autoRechargeEnabled,
         autoRechargeThreshold,

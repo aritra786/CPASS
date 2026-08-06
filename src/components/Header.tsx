@@ -36,7 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
     selectedChildUser,
     setSelectedChildUser,
     userProfile,
-    tenants
+    tenants,
+    switchTenantAccount,
+    logoutUser
   } = useApp();
 
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -123,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     key={t.id}
                     onClick={() => {
-                      setSelectedAccountId(t.accountId);
+                      switchTenantAccount(t.id);
                       setAccountMenuOpen(false);
                     }}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center justify-between text-slate-700"
@@ -236,13 +238,13 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50">
                 <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                   <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-                    {userProfile.name.split(' ').map(n => n[0]).join('')}
+                    {(userProfile?.name || 'User').split(' ').map(n => n[0]).join('')}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 text-sm">{userProfile.name}</div>
-                    <div className="text-xs text-slate-500 truncate max-w-[170px]">{userProfile.email}</div>
+                    <div className="font-bold text-slate-900 text-sm">{userProfile?.name || 'User'}</div>
+                    <div className="text-xs text-slate-500 truncate max-w-[170px]">{userProfile?.email || ''}</div>
                     <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded">
-                      {userProfile.role}
+                      {userProfile?.role || 'Tenant User'}
                     </span>
                   </div>
                 </div>
@@ -262,7 +264,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ) : (
                     <>
                       <div className="px-3 py-1 text-xs font-medium text-slate-500">
-                        Company: <span className="font-bold text-slate-800">{userProfile.company}</span>
+                        Company: <span className="font-bold text-slate-800">{userProfile?.company || 'N/A'}</span>
                       </div>
                       <button
                         onClick={() => {
@@ -285,11 +287,14 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="pt-2 border-t border-slate-100">
                   <button
-                    onClick={() => alert("Logged out of CONNEX CPaaS session.")}
+                    onClick={() => {
+                      logoutUser();
+                      setProfileMenuOpen(false);
+                    }}
                     className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
+                    <span>Sign Out / Switch Account</span>
                   </button>
                 </div>
               </div>

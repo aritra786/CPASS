@@ -21,7 +21,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
     e.preventDefault();
     setError(null);
 
-    const cleanedEmail = email.trim().toLowerCase();
+    const cleanedEmail = (email || '').trim().toLowerCase();
 
     if (cleanedEmail !== AUTHORIZED_EMAIL) {
       setError(`Access Denied: ${cleanedEmail} is not authorized for Admin access. Access is strictly granted to ${AUTHORIZED_EMAIL}.`);

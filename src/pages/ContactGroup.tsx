@@ -2,27 +2,26 @@ import React, { useState } from 'react';
 import { Users, Plus, Upload, Trash2, Tag } from 'lucide-react';
 
 export const ContactGroup: React.FC = () => {
-  const [groups, setGroups] = useState([
-    { id: '1', name: 'VIP Summer Shoppers', count: 4820, channels: ['WhatsApp', 'RCS'], lastUpdated: '2026-08-04' },
-    { id: '2', name: 'OTP Auth Users', count: 12900, channels: ['RCS'], lastUpdated: '2026-08-05' },
-    { id: '3', name: 'Re-Engagement Q3 Leads', count: 3200, channels: ['Viber', 'WhatsApp'], lastUpdated: '2026-08-01' }
-  ]);
+  const [groups, setGroups] = useState<{ id: string; name: string; count: number; channels: string[]; lastUpdated: string }[]>(() => {
+    const saved = localStorage.getItem('connex_contact_groups');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [groupName, setGroupName] = useState('');
 
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupName.trim()) return;
-    setGroups(prev => [
-      {
-        id: Date.now().toString(),
-        name: groupName.trim(),
-        count: Math.floor(100 + Math.random() * 2000),
-        channels: ['WhatsApp', 'RCS'],
-        lastUpdated: new Date().toISOString().split('T')[0]
-      },
-      ...prev
-    ]);
+    const newGroup = {
+      id: Date.now().toString(),
+      name: groupName.trim(),
+      count: 0,
+      channels: ['WhatsApp', 'RCS'],
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    const updated = [newGroup, ...groups];
+    setGroups(updated);
+    localStorage.setItem('connex_contact_groups', JSON.stringify(updated));
     setGroupName('');
   };
 

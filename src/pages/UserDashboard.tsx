@@ -31,24 +31,34 @@ export const UserDashboard: React.FC = () => {
   const [endDate, setEndDate] = useState('2026-08-06');
   const [selectedUserFilter, setSelectedUserFilter] = useState('All Users');
 
-  // Compute live aggregated metrics from message logs & campaigns
-  const submittedCount = messageLogs.length + 10;
-  const sentCount = messageLogs.filter(m => m.status === 'Sent' || m.status === 'Delivered' || m.status === 'Read').length + 1;
-  const deliveredCount = messageLogs.filter(m => m.status === 'Delivered' || m.status === 'Read').length + 1;
-  const readCount = messageLogs.filter(m => m.status === 'Read').length + 1;
-  const failedCount = messageLogs.filter(m => m.status === 'Failed').length + 9;
-  const fallbackCount = messageLogs.filter(m => m.status === 'Fallback').length + 1;
-  const ctrCount = '28.4%';
+  // Compute live aggregated metrics from actual message logs & campaigns
+  const channelLogs = messageLogs.filter(m => !activeChannel || m.channel === activeChannel || activeChannel === 'RCS');
+  const submittedCount = channelLogs.length;
+  const sentCount = channelLogs.filter(m => m.status === 'Sent' || m.status === 'Delivered' || m.status === 'Read').length;
+  const deliveredCount = channelLogs.filter(m => m.status === 'Delivered' || m.status === 'Read').length;
+  const readCount = channelLogs.filter(m => m.status === 'Read').length;
+  const failedCount = channelLogs.filter(m => m.status === 'Failed').length;
+  const fallbackCount = channelLogs.filter(m => m.status === 'Fallback').length;
+  const ctrCount = deliveredCount > 0 ? `${((readCount / deliveredCount) * 100).toFixed(1)}%` : '0.0%';
 
-  // Chart data for traffic trends
-  const trendData = [
-    { time: '00:00', SUBMITTED: 2, SENT: 2, DELIVERED: 2, READ: 1, FAILED: 0, SMS_FALLBACK: 0 },
-    { time: '04:00', SUBMITTED: 4, SENT: 3, DELIVERED: 3, READ: 2, FAILED: 1, SMS_FALLBACK: 0 },
-    { time: '08:00', SUBMITTED: 12, SENT: 10, DELIVERED: 9, READ: 7, FAILED: 2, SMS_FALLBACK: 1 },
-    { time: '12:00', SUBMITTED: 18, SENT: 16, DELIVERED: 15, READ: 12, FAILED: 2, SMS_FALLBACK: 1 },
-    { time: '16:00', SUBMITTED: 8, SENT: 7, DELIVERED: 7, READ: 5, FAILED: 1, SMS_FALLBACK: 0 },
-    { time: '20:00', SUBMITTED: 5, SENT: 4, DELIVERED: 4, READ: 3, FAILED: 1, SMS_FALLBACK: 0 }
-  ];
+  // Dynamic Chart data built from real message logs or hourly intervals
+  const hours = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+  const trendData = hours.map(h => {
+    const hourNum = parseInt(h.split(':')[0], 10);
+    const logsInWindow = channelLogs.filter(m => {
+      const logHour = new Date(m.timestamp).getHours();
+      return isNaN(logHour) || (logHour >= hourNum && logHour < hourNum + 4);
+    });
+    return {
+      time: h,
+      SUBMITTED: logsInWindow.length,
+      SENT: logsInWindow.filter(m => m.status === 'Sent' || m.status === 'Delivered' || m.status === 'Read').length,
+      DELIVERED: logsInWindow.filter(m => m.status === 'Delivered' || m.status === 'Read').length,
+      READ: logsInWindow.filter(m => m.status === 'Read').length,
+      FAILED: logsInWindow.filter(m => m.status === 'Failed').length,
+      SMS_FALLBACK: logsInWindow.filter(m => m.status === 'Fallback').length
+    };
+  });
 
   const exportReport = () => {
     const csvHeader = "Timestamp,Channel,Recipient,Status,Cost\n";

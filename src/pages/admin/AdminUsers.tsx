@@ -28,10 +28,11 @@ import {
 } from 'lucide-react';
 
 export const AdminUsers: React.FC = () => {
-  const { tenants, toggleTenantStatus, addTenant, adminCreditDebit } = useApp();
+  const { tenants, toggleTenantStatus, addTenant, adminCreditDebit, loginUserAccount, setPortalMode } = useApp();
 
   const [selectedTenantForCredit, setSelectedTenantForCredit] = useState<TenantAccount | null>(null);
   const [creditModalOpen, setCreditModalOpen] = useState(false);
+  const [createdSuccessAccount, setCreatedSuccessAccount] = useState<{ accountId: string; passwordText: string; companyName: string } | null>(null);
 
   // Segregation Filter: 'ALL' | 'WhatsApp' | 'RCS' | 'Both'
   const [segregationTab, setSegregationTab] = useState<'ALL' | 'WhatsApp' | 'RCS' | 'Both'>('ALL');
@@ -89,6 +90,12 @@ export const AdminUsers: React.FC = () => {
       channels,
       walletBalance: parseFloat(initialBalance) || 0,
       status: 'Active'
+    });
+
+    setCreatedSuccessAccount({
+      accountId,
+      passwordText: pass,
+      companyName
     });
 
     setShowCreateModal(false);
@@ -178,7 +185,39 @@ export const AdminUsers: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Segregation Counters */}
+      {/* Success Onboarding Banner */}
+      {createdSuccessAccount && (
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-emerald-900">Account Onboarded Successfully!</span>
+              <span className="px-2 py-0.5 text-xs font-mono font-bold bg-emerald-100 text-emerald-800 rounded-md border border-emerald-300">
+                {createdSuccessAccount.accountId}
+              </span>
+            </div>
+            <p className="text-xs text-slate-700">
+              Account created for <strong>{createdSuccessAccount.companyName}</strong>. Password: <code className="px-1.5 py-0.5 bg-white border border-slate-200 rounded font-mono font-bold text-slate-900">{createdSuccessAccount.passwordText}</code>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                loginUserAccount(createdSuccessAccount.accountId, createdSuccessAccount.passwordText);
+                setPortalMode('user');
+              }}
+              className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
+            >
+              Log In to User Portal as this Account
+            </button>
+            <button
+              onClick={() => setCreatedSuccessAccount(null)}
+              className="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-slate-500 text-xs font-semibold">

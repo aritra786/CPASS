@@ -45,14 +45,22 @@ export const CampaignManager: React.FC = () => {
             <span>Active & Historic Campaigns</span>
           </h3>
           <span className="text-xs font-bold text-slate-500">
-            Total Campaigns: {campaigns.length}
+            Total Campaigns: {(campaigns || []).length}
           </span>
         </div>
 
         <div className="space-y-4">
-          {campaigns.map((cmp) => {
-            const deliveredPercent = cmp.recipientCount > 0 ? Math.round((cmp.deliveredCount / cmp.recipientCount) * 100) : 0;
-            const readPercent = cmp.deliveredCount > 0 ? Math.round((cmp.readCount / cmp.deliveredCount) * 100) : 0;
+          {(campaigns || []).map((cmp) => {
+            const recipientCount = cmp.recipientCount ?? 0;
+            const deliveredCount = cmp.deliveredCount ?? 0;
+            const readCount = cmp.readCount ?? 0;
+            const sentCount = cmp.sentCount ?? 0;
+            const failedCount = cmp.failedCount ?? 0;
+            const fallbackCount = cmp.fallbackCount ?? 0;
+            const totalCost = cmp.totalCost ?? 0;
+
+            const deliveredPercent = recipientCount > 0 ? Math.round((deliveredCount / recipientCount) * 100) : 0;
+            const readPercent = deliveredCount > 0 ? Math.round((readCount / deliveredCount) * 100) : 0;
 
             return (
               <div
@@ -75,7 +83,7 @@ export const CampaignManager: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="text-xs font-bold text-slate-900">
-                        ₹{cmp.totalCost.toFixed(2)} INR
+                        ₹{totalCost.toFixed(2)} INR
                       </div>
                       <div className="text-[10px] text-slate-400">Total Campaign Cost</div>
                     </div>
@@ -98,23 +106,23 @@ export const CampaignManager: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
                     <span>
-                      Dispatch Delivery: {cmp.deliveredCount.toLocaleString()} / {cmp.recipientCount.toLocaleString()} ({deliveredPercent}%)
+                      Dispatch Delivery: {deliveredCount.toLocaleString()} / {recipientCount.toLocaleString()} ({deliveredPercent}%)
                     </span>
                     <span>Read Rate: {readPercent}%</span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
                     <div className="bg-emerald-500 h-full" style={{ width: `${deliveredPercent}%` }} />
-                    <div className="bg-rose-400 h-full" style={{ width: `${Math.round((cmp.failedCount / cmp.recipientCount) * 100)}%` }} />
+                    <div className="bg-rose-400 h-full" style={{ width: `${recipientCount > 0 ? Math.round((failedCount / recipientCount) * 100) : 0}%` }} />
                   </div>
                 </div>
 
                 {/* Breakdown metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] pt-1 border-t border-slate-200/60 text-slate-600">
-                  <div>Sent: <strong className="text-slate-900">{cmp.sentCount.toLocaleString()}</strong></div>
-                  <div>Delivered: <strong className="text-emerald-600">{cmp.deliveredCount.toLocaleString()}</strong></div>
-                  <div>Read: <strong className="text-blue-600">{cmp.readCount.toLocaleString()}</strong></div>
-                  <div>Failed: <strong className="text-rose-600">{cmp.failedCount.toLocaleString()}</strong></div>
-                  <div>SMS Fallback: <strong className="text-amber-600">{cmp.fallbackCount.toLocaleString()}</strong></div>
+                  <div>Sent: <strong className="text-slate-900">{sentCount.toLocaleString()}</strong></div>
+                  <div>Delivered: <strong className="text-emerald-600">{deliveredCount.toLocaleString()}</strong></div>
+                  <div>Read: <strong className="text-blue-600">{readCount.toLocaleString()}</strong></div>
+                  <div>Failed: <strong className="text-rose-600">{failedCount.toLocaleString()}</strong></div>
+                  <div>SMS Fallback: <strong className="text-amber-600">{fallbackCount.toLocaleString()}</strong></div>
                 </div>
 
               </div>

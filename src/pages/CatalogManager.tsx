@@ -108,7 +108,7 @@ export const CatalogManager: React.FC = () => {
                 <div>
                   <span className="text-[10px] font-bold uppercase text-slate-400">{p.sku}</span>
                   <h4 className="font-bold text-slate-900 text-sm leading-snug">{p.title}</h4>
-                  <div className="text-blue-700 font-extrabold text-sm mt-1">${p.price.toFixed(2)}</div>
+                  <div className="text-blue-700 font-extrabold text-sm mt-1">${(p.price ?? 0).toFixed(2)}</div>
                 </div>
               </div>
 

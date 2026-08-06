@@ -79,7 +79,7 @@ export const AdminRates: React.FC = () => {
                           className="w-20 px-2 py-1 text-xs border border-indigo-300 rounded font-mono font-bold text-right"
                         />
                       ) : (
-                        `₹${rc.ratePerMsg.toFixed(4)}`
+                        `₹${(rc.ratePerMsg ?? 0).toFixed(4)}`
                       )}
                     </td>
 
@@ -98,7 +98,7 @@ export const AdminRates: React.FC = () => {
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono font-extrabold text-emerald-600">
-                      ₹{endUserPrice.toFixed(4)}
+                      ₹{(endUserPrice ?? 0).toFixed(4)}
                     </td>
 
                     <td className="py-3 px-4 text-center">

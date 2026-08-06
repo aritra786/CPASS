@@ -154,7 +154,7 @@ export const Reporting: React.FC = () => {
                     )}
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                    ₹{m.cost.toFixed(4)}
+                    ₹{(m.cost ?? 0).toFixed(4)}
                   </td>
                   <td className="py-3 px-4 text-[11px] text-slate-500">
                     {m.errorReason ? (

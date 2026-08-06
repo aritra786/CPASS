@@ -40,9 +40,9 @@ export const SendMessage: React.FC = () => {
   const [sendError, setSendError] = useState<string | null>(null);
 
   // Rate lookup for channel
-  const matchedRate = rateCards.find(r => r.channel === activeChannel) || { ratePerMsg: 0.0085 };
-  const costPerMsg = matchedRate.ratePerMsg;
-  const totalCost = mode === 'single' ? costPerMsg : recipientCount * costPerMsg;
+  const matchedRate = rateCards.find(r => r.channel === activeChannel);
+  const costPerMsg = matchedRate?.ratePerMsg ?? 0.0085;
+  const totalCost = mode === 'single' ? costPerMsg : (recipientCount ?? 1) * costPerMsg;
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,8 +57,9 @@ export const SendMessage: React.FC = () => {
     setSendError(null);
     setSendSuccess(null);
 
-    if (walletBalance < totalCost) {
-      setSendError(`Insufficient Wallet Balance (₹${walletBalance.toFixed(2)} available vs ₹${totalCost.toFixed(2)} required). Please top up your wallet.`);
+    const currentBal = walletBalance ?? 0;
+    if (currentBal < totalCost) {
+      setSendError(`Insufficient Wallet Balance (₹${currentBal.toFixed(2)} available vs ₹{(totalCost ?? 0).toFixed(2)} required). Please top up your wallet.`);
       return;
     }
 
@@ -71,14 +72,14 @@ export const SendMessage: React.FC = () => {
       if (mode === 'single') {
         const ok = sendSingleMessage(recipientPhone, activeChannel, tName, totalCost);
         if (ok) {
-          setSendSuccess(`Single ${activeChannel} message sent to ${recipientPhone}! Cost ₹${totalCost.toFixed(4)} deducted from wallet.`);
+          setSendSuccess(`Single ${activeChannel} message sent to ${recipientPhone}! Cost ₹${(totalCost ?? 0).toFixed(4)} deducted from wallet.`);
         } else {
           setSendError('Failed to dispatch message.');
         }
       } else {
         const ok = sendBulkCampaign(activeChannel, tName, recipientCount, costPerMsg, campaignName);
         if (ok) {
-          setSendSuccess(`Campaign "${campaignName}" dispatched to ${recipientCount.toLocaleString()} recipients! Total ₹${totalCost.toFixed(2)} deducted from wallet.`);
+          setSendSuccess(`Campaign "${campaignName}" dispatched to ${(recipientCount ?? 0).toLocaleString()} recipients! Total ₹${(totalCost ?? 0).toFixed(2)} deducted from wallet.`);
         } else {
           setSendError('Failed to execute bulk campaign.');
         }
@@ -110,7 +111,7 @@ export const SendMessage: React.FC = () => {
           <div>
             <div className="text-xs text-blue-200 font-medium">Available Wallet Balance</div>
             <div className="text-xl font-black text-white">
-              ₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{(walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -118,7 +119,7 @@ export const SendMessage: React.FC = () => {
         <div className="text-left sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-blue-800">
           <div className="text-[11px] text-blue-200">Current Channel Rate ({activeChannel}):</div>
           <div className="text-sm font-extrabold text-blue-300">
-            ₹{costPerMsg.toFixed(4)} / message
+            ₹{(costPerMsg ?? 0).toFixed(4)} / message
           </div>
         </div>
       </div>
@@ -269,16 +270,16 @@ export const SendMessage: React.FC = () => {
           <div className="flex justify-between text-xs text-slate-600">
             <span>Volume Recipients:</span>
             <span className="font-bold text-slate-900">
-              {mode === 'single' ? '1 Recipient' : `${recipientCount.toLocaleString()} Recipients`}
+              {mode === 'single' ? '1 Recipient' : `${(recipientCount ?? 0).toLocaleString()} Recipients`}
             </span>
           </div>
           <div className="flex justify-between text-xs text-slate-600">
             <span>Rate Per Message:</span>
-            <span className="font-bold text-slate-900">₹{costPerMsg.toFixed(4)}</span>
+            <span className="font-bold text-slate-900">₹{(costPerMsg ?? 0).toFixed(4)}</span>
           </div>
           <div className="pt-2 border-t border-slate-200 flex justify-between text-sm font-black">
             <span className="text-slate-900">Estimated Total Wallet Deduction:</span>
-            <span className="text-blue-700">₹{totalCost.toFixed(2)}</span>
+            <span className="text-blue-700">₹{(totalCost ?? 0).toFixed(2)}</span>
           </div>
         </div>
 
@@ -311,7 +312,7 @@ export const SendMessage: React.FC = () => {
           ) : (
             <>
               <Send className="w-4 h-4" />
-              <span>Execute {activeChannel} Dispatch (₹{totalCost.toFixed(2)})</span>
+              <span>Execute {activeChannel} Dispatch (₹{(totalCost ?? 0).toFixed(2)})</span>
             </>
           )}
         </button>

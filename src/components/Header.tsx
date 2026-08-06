@@ -189,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
                   Wallet
                 </div>
                 <div className="text-xs font-extrabold text-blue-900 leading-tight">
-                  ₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>

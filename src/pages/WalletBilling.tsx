@@ -88,7 +88,7 @@ export const WalletBilling: React.FC<WalletBillingProps> = ({ onOpenAddFunds }) 
                 Current CONNEX Balance
               </div>
               <div className="text-3xl font-black text-white mt-1">
-                ₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ₹{(walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/30 flex items-center justify-center">
@@ -268,10 +268,10 @@ export const WalletBilling: React.FC<WalletBillingProps> = ({ onOpenAddFunds }) 
                     <td className={`py-3 px-4 text-right font-mono font-extrabold ${
                       t.type === 'CREDIT' || t.type === 'AUTO_RECHARGE' ? 'text-emerald-600' : 'text-slate-900'
                     }`}>
-                      {t.type === 'CREDIT' || t.type === 'AUTO_RECHARGE' ? '+' : '-'}₹{t.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {t.type === 'CREDIT' || t.type === 'AUTO_RECHARGE' ? '+' : '-'}₹{(t.amount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-600">
-                      ₹{t.balanceAfter.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{(t.balanceAfter ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">

@@ -53,7 +53,7 @@ export const AdminCreditModal: React.FC<AdminCreditModalProps> = ({ tenant, isOp
             </div>
             <h4 className="text-lg font-bold text-slate-900">Tenant Wallet Updated!</h4>
             <p className="text-xs text-slate-500">
-              {actionType === 'CREDIT' ? 'Credited' : 'Debited'} ₹{parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {tenant.companyName}.
+              {actionType === 'CREDIT' ? 'Credited' : 'Debited'} ₹{(parseFloat(amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {tenant?.companyName || 'Tenant'}.
             </p>
           </div>
         ) : (
@@ -62,10 +62,10 @@ export const AdminCreditModal: React.FC<AdminCreditModalProps> = ({ tenant, isOp
             {/* Target Tenant Info */}
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Tenant</div>
-              <div className="font-bold text-slate-900 text-sm">{tenant.companyName}</div>
+              <div className="font-bold text-slate-900 text-sm">{tenant?.companyName || 'Tenant'}</div>
               <div className="flex justify-between items-center text-xs text-slate-600 mt-1">
-                <span>Account ID: <strong className="text-slate-900">{tenant.accountId}</strong></span>
-                <span>Current Balance: <strong className="text-emerald-600">₹{tenant.walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
+                <span>Account ID: <strong className="text-slate-900">{tenant?.accountId}</strong></span>
+                <span>Current Balance: <strong className="text-emerald-600">₹{(tenant?.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
               </div>
             </div>
 

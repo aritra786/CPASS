@@ -42,7 +42,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-black text-slate-900">
-            ₹{totalWalletHeld.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{(totalWalletHeld ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className="text-[11px] text-emerald-600 font-bold mt-1">+14.2% vs last month</div>
         </div>

@@ -213,7 +213,7 @@ export const AdminUsers: React.FC = () => {
             <DollarSign className="w-4 h-4 text-purple-600" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-purple-900 font-mono">
-            ₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            ₹{(totalBalance ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </div>
           <div className="text-[11px] text-purple-700">Combined Wallet Balance</div>
         </div>
@@ -244,7 +244,7 @@ export const AdminUsers: React.FC = () => {
             >
               {tenants.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.companyName} ({t.accountId}) — ₹{t.walletBalance.toLocaleString('en-IN')}
+                  {t.companyName} ({t.accountId}) — ₹{(t.walletBalance ?? 0).toLocaleString('en-IN')}
                 </option>
               ))}
             </select>
@@ -522,7 +522,7 @@ export const AdminUsers: React.FC = () => {
 
                       {/* Wallet Balance */}
                       <td className="py-3 px-4 text-right font-mono font-extrabold text-emerald-600 text-sm">
-                        ₹{t.walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₹{(t.walletBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
 
                       {/* Status */}

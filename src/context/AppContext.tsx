@@ -430,7 +430,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [templates, setTemplates] = useState<Template[]>(() => {
     const saved = localStorage.getItem('connex_templates');
-    return saved ? JSON.parse(saved) : initialTemplates;
+    const raw: Template[] = saved ? JSON.parse(saved) : initialTemplates;
+    const seenIds = new Set<string>();
+    const unique: Template[] = [];
+    for (const item of raw) {
+      if (item && item.id && !seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        unique.push(item);
+      }
+    }
+    return unique;
   });
 
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
@@ -480,7 +489,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const dbTemplates = await supabaseService.fetchTemplates();
-      if (dbTemplates && dbTemplates.length > 0) setTemplates(dbTemplates);
+      if (dbTemplates && dbTemplates.length > 0) {
+        setTemplates(prev => {
+          const map = new Map<string, Template>();
+          prev.forEach(t => map.set(t.id, t));
+          dbTemplates.forEach(t => map.set(t.id, t));
+          return Array.from(map.values());
+        });
+      }
 
       const dbCampaigns = await supabaseService.fetchCampaigns();
       if (dbCampaigns && dbCampaigns.length > 0) setCampaigns(dbCampaigns);
@@ -825,11 +841,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date().toISOString().split('T')[0]
     };
     setTemplates(prev => {
-      // Prevent duplicate templates if template with same name & channel exists
-      const existingIdx = prev.findIndex(t => t.name === newTemplate.name && t.channel === newTemplate.channel);
-      if (existingIdx !== -1) {
+      // 1. If template with exact same ID exists, update it
+      const existingIdIdx = prev.findIndex(t => t.id === newTemplate.id);
+      if (existingIdIdx !== -1) {
         const copy = [...prev];
-        copy[existingIdx] = { ...copy[existingIdx], ...newTemplate, id: copy[existingIdx].id };
+        copy[existingIdIdx] = { ...copy[existingIdIdx], ...newTemplate };
+        return copy;
+      }
+      // 2. Prevent duplicate templates if template with same name & channel exists
+      const existingNameIdx = prev.findIndex(t => t.name === newTemplate.name && t.channel === newTemplate.channel);
+      if (existingNameIdx !== -1) {
+        const copy = [...prev];
+        copy[existingNameIdx] = { ...copy[existingNameIdx], ...newTemplate, id: copy[existingNameIdx].id };
         return copy;
       }
       return [newTemplate, ...prev];

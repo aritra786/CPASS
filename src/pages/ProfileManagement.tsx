@@ -89,7 +89,9 @@ export const ProfileManagement: React.FC = () => {
       }
       const data = await routeMobileApi.fetchAllDetails(jwtTokenInput);
       setApiDetailsData(data);
-      setApiFetchNotice('Successfully authenticated with JWT token & retrieved all details from Route Mobile / Backend APIs!');
+      const validity = routeMobileApi.getTokenValidityInfo();
+      const mins = Math.floor(validity.remainingSeconds / 60);
+      setApiFetchNotice(`Token active & valid for 1 hour! (${mins} mins remaining until next authentication required). Retrieved all API details.`);
     } catch (err: any) {
       setApiFetchNotice(`API Details notice: ${err.message || 'Complete'}`);
     } finally {

@@ -123,7 +123,7 @@ export const SendMessage: React.FC = () => {
         routeMobileApi.setToken(activeToken);
       }
 
-      // Live Backend API Message Dispatcher (/api/messages/send)
+      // Live Backend API Message Dispatcher (/api/messages/send) & Route Mobile Upstream API
       let apiResult: any = null;
       try {
         apiResult = await backendApi.sendMessage({
@@ -134,7 +134,18 @@ export const SendMessage: React.FC = () => {
           variables: Object.values(templateVariableValues),
           sender: selectedTemplate?.agentName || 'WA_GATEWAY'
         });
-        setApiResponseDetails(apiResult);
+
+        // Also call Route Mobile API client directly
+        const rmlDirect = await routeMobileApi.sendMessage({
+          phone: recipientPhone,
+          text: finalMsgText,
+          extra: activeChannel
+        });
+
+        setApiResponseDetails({
+          backendResponse: apiResult,
+          routeMobileDirect: rmlDirect
+        });
       } catch (errApi) {
         console.warn('Backend API gateway fallback notice:', errApi);
       }
@@ -399,8 +410,8 @@ export const SendMessage: React.FC = () => {
             <option value="">-- Direct Custom Message (Session) --</option>
             {templates
               .filter(t => t.channel?.toLowerCase() === activeChannel.toLowerCase())
-              .map(t => (
-                <option key={t.id} value={t.id}>
+              .map((t, idx) => (
+                <option key={`${t.id}_${idx}`} value={t.id}>
                   {t.name} ({t.type}) [{t.category}] - {t.agentName || t.sender}
                 </option>
               ))}

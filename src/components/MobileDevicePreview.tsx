@@ -66,13 +66,20 @@ export const MobileDevicePreview: React.FC<MobileDevicePreviewProps> = ({
 }) => {
   const [activeCarouselIndex, setActiveCarouselIndex] = useState(0);
 
-  // Replace variables like [var1], {{1}} in body text
-  let renderedBody = bodyText || 'Your message text will appear here...';
-  
-  variables.forEach((v, idx) => {
-    const val = variableValues[v] || variableValues[`var${idx + 1}`] || `[${v}]`;
-    renderedBody = renderedBody.replace(new RegExp(`\\[${v}\\]|\\[var${idx + 1}\\]|\\{\\{${idx + 1}\\}\\}`, 'gi'), val);
-  });
+  // Helper to replace variables like {{1}}, {{2}}, {{3}} or [var1]
+  const replaceVariables = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/\{\{(\d+)\}\}/g, (match, num) => {
+        return variableValues[num] || variableValues[`var${num}`] || variableValues[`{{${num}}}`] || match;
+      })
+      .replace(/\[var(\d+)\]/gi, (match, num) => {
+        return variableValues[num] || variableValues[`var${num}`] || match;
+      });
+  };
+
+  let renderedBody = replaceVariables(bodyText || 'Your message text will appear here...');
+  let renderedHeaderText = replaceVariables(headerText || '');
 
   const isWhatsApp = channel === 'WhatsApp';
   const isCarousel = subcategory === 'Carousel' || templateType === 'Carousel';
@@ -180,7 +187,7 @@ export const MobileDevicePreview: React.FC<MobileDevicePreviewProps> = ({
 
                 {headerType === 'Text' && headerText && (
                   <div className="font-extrabold text-xs text-slate-900 border-b border-slate-100 pb-1">
-                    {headerText}
+                    {renderedHeaderText}
                   </div>
                 )}
 
@@ -242,7 +249,7 @@ export const MobileDevicePreview: React.FC<MobileDevicePreviewProps> = ({
                           {card.title || `Card ${idx + 1}`}
                         </div>
                         <p className="text-[10px] text-slate-600 line-clamp-2">
-                          {card.description || renderedBody}
+                          {replaceVariables(card.description) || renderedBody}
                         </p>
                       </div>
 

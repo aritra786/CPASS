@@ -15,6 +15,7 @@ export interface RmlLoginResponse {
     is_staff: boolean;
   };
   status?: string;
+  message?: string;
 }
 
 export interface RmlAccountDetails {
@@ -81,9 +82,11 @@ export interface RmlTemplate {
   created_date?: string;
 }
 
+const TOKEN_TTL_MS = 60 * 60 * 1000; // Token is valid for 1 hour (3600 seconds)
+
 // Standalone request helper
 async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}, customToken?: string): Promise<T> {
-  const token = customToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('rml_jwt_token') || '' : '');
+  const token = customToken || (typeof localStorage !== 'undefined' ? routeMobileApi.getValidToken() || '' : '');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
@@ -106,23 +109,121 @@ async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}, 
 }
 
 export const routeMobileApi = {
-  // Store JWT token locally
+  // Store JWT token locally with generation timestamp
   getToken(): string {
     return localStorage.getItem('rml_jwt_token') || '';
   },
 
-  setToken(token: string): void {
+  getTokenTimestamp(): number {
+    const savedTs = localStorage.getItem('rml_jwt_token_timestamp');
+    if (savedTs) {
+      const parsed = parseInt(savedTs, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    // If token exists without timestamp, initialize timestamp to now
+    const token = this.getToken();
+    if (token) {
+      const now = Date.now();
+      localStorage.setItem('rml_jwt_token_timestamp', now.toString());
+      return now;
+    }
+    return 0;
+  },
+
+  setToken(token: string, customTimestamp?: number): void {
+    const timestamp = customTimestamp || Date.now();
     localStorage.setItem('rml_jwt_token', token);
+    localStorage.setItem('rml_jwt_token_timestamp', timestamp.toString());
   },
 
   clearToken(): void {
     localStorage.removeItem('rml_jwt_token');
+    localStorage.removeItem('rml_jwt_token_timestamp');
+  },
+
+  // Check if token was generated within the last 1 hour (3600 seconds)
+  isTokenValid(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    const ts = this.getTokenTimestamp();
+    if (!ts) return false;
+    const ageMs = Date.now() - ts;
+    return ageMs < TOKEN_TTL_MS; // Valid if less than 1 hour old
+  },
+
+  // Returns remaining valid seconds (max 3600s)
+  getRemainingValiditySeconds(): number {
+    if (!this.isTokenValid()) return 0;
+    const ts = this.getTokenTimestamp();
+    const elapsedMs = Date.now() - ts;
+    return Math.max(0, Math.floor((TOKEN_TTL_MS - elapsedMs) / 1000));
+  },
+
+  // Get token only if valid (< 1 hour old)
+  getValidToken(): string {
+    if (this.isTokenValid()) {
+      return this.getToken();
+    }
+    return '';
+  },
+
+  // Returns detailed validity object for UI and diagnostics
+  getTokenValidityInfo(): {
+    isValid: boolean;
+    remainingSeconds: number;
+    ageSeconds: number;
+    generatedAt: string | null;
+    expiresAt: string | null;
+  } {
+    const isValid = this.isTokenValid();
+    const ts = this.getTokenTimestamp();
+    if (!ts || !this.getToken()) {
+      return { isValid: false, remainingSeconds: 0, ageSeconds: 0, generatedAt: null, expiresAt: null };
+    }
+    const ageMs = Date.now() - ts;
+    const remainingMs = Math.max(0, TOKEN_TTL_MS - ageMs);
+    return {
+      isValid,
+      remainingSeconds: Math.floor(remainingMs / 1000),
+      ageSeconds: Math.floor(ageMs / 1000),
+      generatedAt: new Date(ts).toLocaleString(),
+      expiresAt: new Date(ts + TOKEN_TTL_MS).toLocaleString()
+    };
   },
 
   request: apiRequest,
 
-  // 1. WhatsApp Login API: POST /auth/v1/login/
-  async login(username: string, password: string): Promise<RmlLoginResponse> {
+  /**
+   * 1. WhatsApp Login API: POST /auth/v1/login/
+   * Generates a new auth token ONLY if 1 hour has elapsed post token generation or if forceRefresh is true.
+   * Reuses the valid cached token to prevent unnecessary authentication pings to the server.
+   */
+  async login(username: string, password: string, forceRefresh: boolean = false): Promise<RmlLoginResponse> {
+    // Re-use cached token if it is still within 1 hour validity period
+    if (!forceRefresh && this.isTokenValid()) {
+      const cachedToken = this.getToken();
+      const remainingSec = this.getRemainingValiditySeconds();
+      const remainingMin = Math.floor(remainingSec / 60);
+      console.log(`[Route Mobile API] Token generated previously is valid for 1 hour (${remainingMin}m ${remainingSec % 60}s remaining). Reusing cached token without pinging authentication server.`);
+      
+      return {
+        JWTAUTH: cachedToken,
+        status: 'SUCCESS_CACHED',
+        message: `Reusing cached JWT auth token (Valid for another ${remainingMin} mins). Server authentication ping skipped.`,
+        user_data: {
+          username: username || 'connex_routemobile_user',
+          first_name: 'Connex',
+          last_name: 'Admin',
+          email: 'support@connex.io',
+          phone_number: '+919876543210',
+          is_active: true,
+          is_staff: true
+        }
+      };
+    }
+
+    // Token missing or 1 hour expired -> Ping authentication server
+    console.log('[Route Mobile API] Token missing or 1 hour expired. Requesting new auth token from server...');
     const res = await fetch('/api/rml/auth/v1/login/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,7 +231,8 @@ export const routeMobileApi = {
     });
     const data = await res.json();
     if (data.JWTAUTH) {
-      this.setToken(data.JWTAUTH);
+      this.setToken(data.JWTAUTH, Date.now());
+      console.log('[Route Mobile API] New 1-hour auth token generated successfully and cached.');
     }
     return data;
   },

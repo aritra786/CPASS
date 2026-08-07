@@ -23,7 +23,8 @@ import {
   LogOut,
   ShieldAlert,
   SlidersHorizontal,
-  PlusCircle
+  PlusCircle,
+  Database
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -96,13 +97,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Contact Group', icon: <Users className="w-4 h-4" /> },
     { name: 'Wallet & Billing', icon: <CreditCard className="w-4 h-4" /> },
     { name: 'Instant Background Verification', icon: <ShieldCheck className="w-4 h-4" /> },
-    { name: 'Coex User', icon: <UserCheck className="w-4 h-4" /> }
+    { name: 'Coex User', icon: <UserCheck className="w-4 h-4" /> },
+    { name: 'Supabase SQL Editor', icon: <Database className="w-4 h-4 text-emerald-600" /> }
   ];
 
   const adminMenuItems = [
     { id: 'admin_dashboard', tab: 'Admin Dashboard', name: 'Platform Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'admin_users', tab: 'Admin Users', name: 'Tenant Management', icon: <Users className="w-4 h-4" /> },
-    { id: 'admin_rates', tab: 'Admin Rates', name: 'Rate Cards & Margins', icon: <SlidersHorizontal className="w-4 h-4" /> }
+    { id: 'admin_rates', tab: 'Admin Rates', name: 'Rate Cards & Margins', icon: <SlidersHorizontal className="w-4 h-4" /> },
+    { id: 'admin_sql', tab: 'Supabase SQL Editor', name: 'Supabase SQL Studio', icon: <Database className="w-4 h-4 text-emerald-600" /> }
   ];
 
   return (

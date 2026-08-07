@@ -8,7 +8,8 @@ export const SubNavTabs: React.FC = () => {
     const adminTabs = [
       { name: 'Admin Dashboard', label: 'Platform Overview' },
       { name: 'Admin Users', label: 'Tenant Accounts' },
-      { name: 'Admin Rates', label: 'Rate Cards & Margins' }
+      { name: 'Admin Rates', label: 'Rate Cards & Margins' },
+      { name: 'Supabase SQL Editor', label: 'Supabase SQL Studio' }
     ];
 
     return (

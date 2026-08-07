@@ -20,6 +20,7 @@ import { ProfileManagement } from './pages/ProfileManagement';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminUsers } from './pages/admin/AdminUsers';
 import { AdminRates } from './pages/admin/AdminRates';
+import { SupabaseSqlEditor } from './pages/admin/SupabaseSqlEditor';
 import { AdminAuthGate } from './pages/admin/AdminAuthGate';
 import { UserAuthGate } from './pages/UserAuthGate';
 
@@ -84,12 +85,18 @@ const MainAppLayout: React.FC = () => {
   }
 
   const renderMainView = () => {
+    if (activeTab === 'Supabase SQL Editor') {
+      return <SupabaseSqlEditor />;
+    }
+
     if (currentRoute === '/admin' || portalMode === 'admin') {
       switch (activeTab) {
         case 'Admin Users':
           return <AdminUsers />;
         case 'Admin Rates':
           return <AdminRates />;
+        case 'Supabase SQL Editor':
+          return <SupabaseSqlEditor />;
         case 'Admin Dashboard':
         default:
           return <AdminDashboard />;

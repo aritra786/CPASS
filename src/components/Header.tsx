@@ -13,7 +13,9 @@ import {
   Building2,
   Check,
   Zap,
-  Globe
+  Globe,
+  MessageSquare,
+  MessageCircle
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -29,12 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const {
     portalMode,
-    setPortalMode,
     walletBalance,
     selectedAccountId,
-    setSelectedAccountId,
-    selectedChildUser,
-    setSelectedChildUser,
     userProfile,
     tenants,
     switchTenantAccount,
@@ -42,16 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   } = useApp();
 
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [childMenuOpen, setChildMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-
-  const childUsers = [
-    'All Child Users',
-    'Acme Asia-Pacific',
-    'Acme EU Logistics',
-    'Fintech Core Ops',
-    'Marketing Campaign Division'
-  ];
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs">
@@ -100,87 +89,54 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
-          {/* Account ID Selector Dropdown */}
-          <div className="relative hidden md:block">
-            <button
-              onClick={() => {
-                setAccountMenuOpen(!accountMenuOpen);
-                setChildMenuOpen(false);
-                setProfileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 transition-colors"
-              id="account-selector-btn"
-            >
+          {/* Account ID Display (Fixed for User Portal, Dropdown for Platform Admin) */}
+          {portalMode === 'admin' ? (
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => {
+                  setAccountMenuOpen(!accountMenuOpen);
+                  setProfileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 transition-colors shadow-2xs"
+                id="account-selector-btn"
+              >
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>{selectedAccountId}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {accountMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Select Tenant Account
+                  </div>
+                  {tenants.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        switchTenantAccount(t.id);
+                        setAccountMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center justify-between text-slate-700"
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-900">{t.accountId}</div>
+                        <div className="text-[11px] text-slate-500">{t.companyName}</div>
+                      </div>
+                      {selectedAccountId === t.accountId && (
+                        <Check className="w-4 h-4 text-blue-600" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 text-xs font-bold bg-slate-50 border border-slate-200/90 rounded-xl text-slate-800 shadow-2xs">
               <Building2 className="w-3.5 h-3.5 text-blue-600" />
               <span>{selectedAccountId}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {accountMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Select Tenant Account
-                </div>
-                {tenants.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      switchTenantAccount(t.id);
-                      setAccountMenuOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center justify-between text-slate-700"
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-900">{t.accountId}</div>
-                      <div className="text-[11px] text-slate-500">{t.companyName}</div>
-                    </div>
-                    {selectedAccountId === t.accountId && (
-                      <Check className="w-4 h-4 text-blue-600" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Child User Dropdown */}
-          <div className="relative hidden lg:block">
-            <button
-              onClick={() => {
-                setChildMenuOpen(!childMenuOpen);
-                setAccountMenuOpen(false);
-                setProfileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 transition-colors"
-              id="child-user-selector-btn"
-            >
-              <span>{selectedChildUser}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {childMenuOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50">
-                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Filter Child Users
-                </div>
-                {childUsers.map(child => (
-                  <button
-                    key={child}
-                    onClick={() => {
-                      setSelectedChildUser(child);
-                      setChildMenuOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between text-slate-700"
-                  >
-                    <span>{child}</span>
-                    {selectedChildUser === child && (
-                      <Check className="w-4 h-4 text-blue-600" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Live Wallet Balance Widget */}
           <div className="flex items-center bg-blue-50/80 border border-blue-200/80 rounded-xl p-1 pl-2.5 sm:pl-3">
@@ -226,7 +182,6 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => {
                 setProfileMenuOpen(!profileMenuOpen);
                 setAccountMenuOpen(false);
-                setChildMenuOpen(false);
               }}
               className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 hover:border-blue-400 flex items-center justify-center text-slate-700 transition-colors"
               id="profile-dropdown-btn"

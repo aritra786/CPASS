@@ -31,17 +31,28 @@ import {
 } from 'lucide-react';
 
 export const TemplateManager: React.FC = () => {
-  const { templates, activeChannel, addTemplate, deleteTemplate } = useApp();
+  const { templates, activeChannel, addTemplate, deleteTemplate, tenants, selectedAccountId } = useApp();
+
+  const currentTenant = tenants.find(t => t.accountId === selectedAccountId);
+  const allowedUserType = currentTenant?.userType || 'Both';
 
   // Selected Channel Tab: 'WhatsApp' or 'RCS' (Strict channel separation)
-  const [selectedChannelTab, setSelectedChannelTab] = useState<'WhatsApp' | 'RCS'>(
-    activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS'
-  );
+  const [selectedChannelTab, setSelectedChannelTab] = useState<'WhatsApp' | 'RCS'>(() => {
+    if (allowedUserType === 'WhatsApp') return 'WhatsApp';
+    if (allowedUserType === 'RCS') return 'RCS';
+    return activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS';
+  });
 
-  // Sync state when activeChannel changes in header
+  // Sync state when activeChannel or current tenant userType changes
   useEffect(() => {
-    setSelectedChannelTab(activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS');
-  }, [activeChannel]);
+    if (allowedUserType === 'WhatsApp') {
+      setSelectedChannelTab('WhatsApp');
+    } else if (allowedUserType === 'RCS') {
+      setSelectedChannelTab('RCS');
+    } else {
+      setSelectedChannelTab(activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS');
+    }
+  }, [activeChannel, allowedUserType]);
 
   // Mode: 'list' or 'create'
   const [viewMode, setViewMode] = useState<'list' | 'create'>('list');
@@ -51,8 +62,15 @@ export const TemplateManager: React.FC = () => {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedAgent, setSelectedAgent] = useState('RMLUAT11');
-  const [selectedChildUser, setSelectedChildUser] = useState('');
+
+  // Pagination State (10 templates per page)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
+
+  // Reset pagination when filter or channel tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedChannelTab, searchQuery, statusFilter]);
 
   const handleSyncRouteMobileTemplates = async () => {
     setIsSyncingApi(true);
@@ -67,7 +85,7 @@ export const TemplateManager: React.FC = () => {
             name: item.name,
             channel: selectedChannelTab,
             type: 'Text',
-            agentName: selectedAgent,
+            agentName: selectedChannelTab === 'WhatsApp' ? 'WABA 109481' : 'RMLUAT11',
             bodyText: bodyComp,
             actions: [],
             variables: [],
@@ -116,6 +134,108 @@ export const TemplateManager: React.FC = () => {
     return matchesSearch;
   });
 
+  // Pagination Calculations (10 templates per page)
+  const totalFilteredCount = filteredTemplates.length;
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (validCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalFilteredCount);
+  const paginatedTemplates = filteredTemplates.slice(startIndex, endIndex);
+
+  // Render pagination buttons helper
+  const renderPaginationControls = () => {
+    if (totalFilteredCount === 0) return null;
+
+    const pageNumbers = [];
+    const maxVisible = 5;
+    let startP = Math.max(1, validCurrentPage - Math.floor(maxVisible / 2));
+    let endP = Math.min(totalPages, startP + maxVisible - 1);
+
+    if (endP - startP + 1 < maxVisible) {
+      startP = Math.max(1, endP - maxVisible + 1);
+    }
+
+    for (let i = startP; i <= endP; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex items-center gap-1 text-xs">
+        <button
+          onClick={() => setCurrentPage(1)}
+          disabled={validCurrentPage === 1}
+          className="px-2 py-1 text-slate-500 hover:text-slate-800 font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="First Page"
+        >
+          «
+        </button>
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={validCurrentPage === 1}
+          className="px-2 py-1 text-slate-500 hover:text-slate-800 font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Previous Page"
+        >
+          ‹
+        </button>
+
+        {startP > 1 && (
+          <>
+            <button
+              onClick={() => setCurrentPage(1)}
+              className="w-7 h-7 text-slate-600 hover:bg-slate-100 font-bold rounded-lg flex items-center justify-center transition-colors"
+            >
+              1
+            </button>
+            {startP > 2 && <span className="px-1 text-slate-400 font-bold">...</span>}
+          </>
+        )}
+
+        {pageNumbers.map(num => (
+          <button
+            key={num}
+            onClick={() => setCurrentPage(num)}
+            className={`w-7 h-7 font-bold rounded-lg flex items-center justify-center transition-all ${
+              validCurrentPage === num
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            {num}
+          </button>
+        ))}
+
+        {endP < totalPages && (
+          <>
+            {endP < totalPages - 1 && <span className="px-1 text-slate-400 font-bold">...</span>}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              className="w-7 h-7 text-slate-600 hover:bg-slate-100 font-bold rounded-lg flex items-center justify-center transition-colors"
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={validCurrentPage === totalPages}
+          className="px-2 py-1 text-slate-500 hover:text-slate-800 font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Next Page"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => setCurrentPage(totalPages)}
+          disabled={validCurrentPage === totalPages}
+          className="px-2 py-1 text-slate-500 hover:text-slate-800 font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          title="Last Page"
+        >
+          »
+        </button>
+      </div>
+    );
+  };
+
   // Aggregated Stat Counts
   const totalCount = channelTemplates.length;
   const approvedCount = channelTemplates.filter(t => t.status === 'Approved').length;
@@ -144,38 +264,60 @@ export const TemplateManager: React.FC = () => {
   return (
     <div className="space-y-6">
 
-      {/* Top Channel Tabs (WhatsApp vs RCS Separated Navigation) */}
-      <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center justify-between gap-2 max-w-md border border-slate-200/80">
-        <button
-          onClick={() => setSelectedChannelTab('WhatsApp')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-            selectedChannelTab === 'WhatsApp'
-              ? 'bg-emerald-600 text-white shadow-md scale-[1.01]'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-          <span>WhatsApp Templates</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'WhatsApp' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+      {/* Top Channel Navigation / Allocated Channel Indicator */}
+      {allowedUserType === 'WhatsApp' ? (
+        <div className="bg-emerald-50/90 border border-emerald-200/80 p-2.5 px-4 rounded-2xl flex items-center justify-between gap-3 max-w-md shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-black text-emerald-900">WhatsApp Templates Only</span>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-700 text-white">
             {templates.filter(t => t.channel === 'WhatsApp').length}
           </span>
-        </button>
-
-        <button
-          onClick={() => setSelectedChannelTab('RCS')}
-          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-            selectedChannelTab === 'RCS'
-              ? 'bg-blue-600 text-white shadow-md scale-[1.01]'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
-          <span>RCS RBM Templates</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'RCS' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+        </div>
+      ) : allowedUserType === 'RCS' ? (
+        <div className="bg-indigo-50/90 border border-indigo-200/80 p-2.5 px-4 rounded-2xl flex items-center justify-between gap-3 max-w-md shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="text-xs font-black text-indigo-900">RCS RBM Templates Only</span>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-700 text-white">
             {templates.filter(t => t.channel === 'RCS' || !t.channel).length}
           </span>
-        </button>
-      </div>
+        </div>
+      ) : (
+        <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center justify-between gap-2 max-w-md border border-slate-200/80">
+          <button
+            onClick={() => setSelectedChannelTab('WhatsApp')}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+              selectedChannelTab === 'WhatsApp'
+                ? 'bg-emerald-600 text-white shadow-md scale-[1.01]'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+            <span>WhatsApp Templates</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'WhatsApp' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {templates.filter(t => t.channel === 'WhatsApp').length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setSelectedChannelTab('RCS')}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+              selectedChannelTab === 'RCS'
+                ? 'bg-blue-600 text-white shadow-md scale-[1.01]'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-300 animate-pulse"></span>
+            <span>RCS RBM Templates</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedChannelTab === 'RCS' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'}`}>
+              {templates.filter(t => t.channel === 'RCS' || !t.channel).length}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Channel-Specific Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200">
@@ -192,37 +334,6 @@ export const TemplateManager: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {selectedChannelTab === 'RCS' ? (
-            <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-            >
-              <option value="RMLUAT11">RMLUAT11</option>
-              <option value="routeotp">routeotp</option>
-              <option value="CONNEX Support">CONNEX Support</option>
-            </select>
-          ) : (
-            <select
-              value={selectedAgent}
-              onChange={(e) => setSelectedAgent(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-            >
-              <option value="WhatsApp WABA 109481">WABA 109481 (Meta)</option>
-              <option value="WhatsApp Business API">WA Business Direct</option>
-            </select>
-          )}
-
-          <select
-            value={selectedChildUser}
-            onChange={(e) => setSelectedChildUser(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200 text-xs font-medium text-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          >
-            <option value="">Select child user</option>
-            <option value="child_1">User_1 (Marketing)</option>
-            <option value="child_2">User_2 (Operations)</option>
-          </select>
-
           <button
             onClick={() => alert(`${selectedChannelTab} Knowledge Hub:\n- ${selectedChannelTab} Templates TAT: 12-24 hours.\n- Variables format: {{1}} or [var1].\n- Quick replies & action buttons supported.`)}
             className={`px-3.5 py-1.5 border font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs ${
@@ -404,31 +515,22 @@ export const TemplateManager: React.FC = () => {
         {/* Pagination Subtext Row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs text-slate-500 font-medium">
           <div>
-            Showing 1–{filteredTemplates.length} of {totalCount} templates
+            Showing <span className="font-bold text-slate-800">{totalFilteredCount === 0 ? 0 : startIndex + 1}–{endIndex}</span> of <span className="font-bold text-slate-800">{totalFilteredCount}</span> templates (Page <span className="font-bold text-blue-600">{validCurrentPage}</span> of <span className="font-bold text-slate-800">{totalPages}</span>)
           </div>
 
-          {/* Pagination Controls matching Screenshot 2 */}
-          <div className="flex items-center gap-1 text-xs">
-            <button className="px-2 py-1 text-slate-400 hover:text-slate-700 font-bold">«</button>
-            <button className="px-2 py-1 text-slate-400 hover:text-slate-700 font-bold">‹</button>
-            <button className="w-7 h-7 bg-blue-600 text-white font-bold rounded-lg flex items-center justify-center shadow-2xs">1</button>
-            <button className="w-7 h-7 text-slate-600 hover:bg-slate-100 font-bold rounded-lg flex items-center justify-center">2</button>
-            <button className="w-7 h-7 text-slate-600 hover:bg-slate-100 font-bold rounded-lg flex items-center justify-center">3</button>
-            <button className="w-7 h-7 text-slate-600 hover:bg-slate-100 font-bold rounded-lg flex items-center justify-center">4</button>
-            <button className="px-2 py-1 text-slate-400 hover:text-slate-700 font-bold">›</button>
-            <button className="px-2 py-1 text-slate-400 hover:text-slate-700 font-bold">»</button>
-          </div>
+          {/* Pagination Controls */}
+          {renderPaginationControls()}
         </div>
 
       </div>
 
       {/* Template Cards Grid matching Screenshot 2 */}
-      {filteredTemplates.length === 0 ? (
+      {totalFilteredCount === 0 ? (
         <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center space-y-3">
           <Layers className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-700">No RCS templates found</h3>
+          <h3 className="text-sm font-bold text-slate-700">No {selectedChannelTab} templates found</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Try resetting your search query or create a new RCS template.
+            Try resetting your search query or create a new {selectedChannelTab} template.
           </p>
           <button
             onClick={() => setViewMode('create')}
@@ -439,7 +541,7 @@ export const TemplateManager: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredTemplates.map((template, idx) => {
+          {paginatedTemplates.map((template, idx) => {
             const isRejected = template.status === 'Rejected';
             const isApproved = template.status === 'Approved';
             const isPending = template.status === 'Pending';
@@ -539,6 +641,16 @@ export const TemplateManager: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Bottom Pagination Bar */}
+      {totalFilteredCount > 0 && (
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
+          <div>
+            Showing <span className="font-bold text-slate-800">{startIndex + 1}–{endIndex}</span> of <span className="font-bold text-slate-800">{totalFilteredCount}</span> templates (Page <span className="font-bold text-blue-600">{validCurrentPage}</span> of <span className="font-bold text-slate-800">{totalPages}</span>)
+          </div>
+          {renderPaginationControls()}
         </div>
       )}
 

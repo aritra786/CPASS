@@ -5,7 +5,10 @@ import { DateRangePicker } from '../components/DateRangePicker';
 import { BarChart2, Search, Download, CheckCircle2, AlertTriangle, RefreshCw, Eye, Send, FileSpreadsheet } from 'lucide-react';
 
 export const Reporting: React.FC = () => {
-  const { messageLogs } = useApp();
+  const { messageLogs, tenants, selectedAccountId } = useApp();
+  const currentTenant = tenants.find(t => t.accountId === selectedAccountId);
+  const userType = currentTenant?.userType;
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [startDate, setStartDate] = useState('2026-07-07');
@@ -27,6 +30,8 @@ export const Reporting: React.FC = () => {
   };
 
   const filteredLogs = (messageLogs || []).filter(m => {
+    if (userType === 'WhatsApp' && m.channel !== 'WhatsApp') return false;
+    if (userType === 'RCS' && m.channel !== 'RCS') return false;
     const query = (search || '').toLowerCase();
     const matchesSearch =
       (m.recipientPhone || '').toLowerCase().includes(query) ||

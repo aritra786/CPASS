@@ -8,7 +8,6 @@ import {
   AlertCircle,
   RefreshCw,
   MousePointerClick,
-  User,
   Download,
   Globe,
   BarChart3
@@ -29,7 +28,6 @@ export const UserDashboard: React.FC = () => {
 
   const [startDate, setStartDate] = useState('2026-07-07');
   const [endDate, setEndDate] = useState('2026-08-06');
-  const [selectedUserFilter, setSelectedUserFilter] = useState('All Users');
 
   // Compute live aggregated metrics from actual message logs & campaigns
   const channelLogs = messageLogs.filter(m => !activeChannel || m.channel === activeChannel || activeChannel === 'RCS');
@@ -97,21 +95,6 @@ export const UserDashboard: React.FC = () => {
               setEndDate(end);
             }}
           />
-
-          {/* User Selector Dropdown */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs text-xs text-slate-700 gap-1.5">
-            <User className="w-3.5 h-3.5 text-slate-400" />
-            <select
-              value={selectedUserFilter}
-              onChange={(e) => setSelectedUserFilter(e.target.value)}
-              className="bg-transparent focus:outline-hidden font-medium"
-            >
-              <option>Select Username</option>
-              <option>All Users</option>
-              <option>Aritra Sardar</option>
-              <option>Marketing Ops</option>
-            </select>
-          </div>
 
           {/* EXPORT Button */}
           <button

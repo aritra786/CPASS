@@ -4,7 +4,7 @@ export type TemplateType = 'Text' | 'Rich Card' | 'Carousel' | 'Text + PDF' | 'O
 
 export interface TemplateAction {
   id: string;
-  type: 'URL' | 'PHONE' | 'QUICK_REPLY';
+  type: 'URL' | 'PHONE' | 'QUICK_REPLY' | 'COPY_CODE';
   label: string;
   value: string;
 }
@@ -18,9 +18,14 @@ export interface Template {
   agentName: string;
   sender?: string;
   category?: string;
+  subcategory?: string;
+  language?: string;
   bodyText: string;
   headerMediaUrl?: string;
-  headerType?: 'None' | 'Image' | 'Video' | 'Document';
+  headerType?: 'None' | 'Text' | 'Image' | 'Video' | 'Document';
+  headerText?: string;
+  footerText?: string;
+  ttlSeconds?: string;
   variables: string[];
   actions: TemplateAction[];
   status: 'Approved' | 'Pending' | 'Rejected';
@@ -75,6 +80,7 @@ export interface TenantAccount {
   companyName: string;
   accountId: string; // e.g. RMLUAT11
   accountPassword?: string;
+  jwtToken?: string;
   adminName: string;
   email: string;
   userType: 'WhatsApp' | 'RCS' | 'Both';

@@ -530,6 +530,7 @@ export const AdminUsers: React.FC = () => {
                 <th className="py-3 px-4">Company Name</th>
                 <th className="py-3 px-4">Account ID</th>
                 <th className="py-3 px-4">Account Password</th>
+                <th className="py-3 px-4">JWT Auth Token</th>
                 <th className="py-3 px-4">User Email & Contact</th>
                 <th className="py-3 px-4 text-center">User Type</th>
                 <th className="py-3 px-4 text-right">Wallet Balance</th>
@@ -540,7 +541,7 @@ export const AdminUsers: React.FC = () => {
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
               {filteredTenants.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
+                  <td colSpan={9} className="py-8 text-center text-slate-400">
                     No accounts found for the selected segregation filter or search query.
                   </td>
                 </tr>
@@ -548,6 +549,7 @@ export const AdminUsers: React.FC = () => {
                 filteredTenants.map(t => {
                   const showPass = !!visiblePasswords[t.id];
                   const passwordText = t.accountPassword || 'CnxSecret_9921#';
+                  const jwtStr = t.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${t.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${t.accountId.toLowerCase()}`;
 
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
@@ -590,6 +592,26 @@ export const AdminUsers: React.FC = () => {
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* JWT Auth Token */}
+                      <td className="py-3 px-4 font-mono text-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          <span className="bg-purple-50 border border-purple-200/80 text-purple-900 font-semibold px-2 py-0.5 rounded-md text-[10px] truncate max-w-[120px]" title={jwtStr}>
+                            {jwtStr.substring(0, 16)}...
+                          </span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(jwtStr);
+                              setActionNotice(`Copied JWT Auth Token for ${t.companyName}`);
+                              setTimeout(() => setActionNotice(null), 3000);
+                            }}
+                            className="p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded"
+                            title="Copy JWT Auth Token"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

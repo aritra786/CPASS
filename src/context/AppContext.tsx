@@ -241,6 +241,54 @@ const initialTemplates: Template[] = [
     status: 'Pending',
     createdAt: '2026-08-06',
     updatedAt: '2026-08-06 09:15 AM'
+  },
+  {
+    id: 'wa_tpl_101',
+    templateIdNum: '101',
+    name: 'wa_order_confirm',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'UTILITY',
+    agentName: 'WhatsApp Business Gateway',
+    sender: 'WA_CONNEX',
+    bodyText: 'Hello [var1], your order #[var2] has been confirmed and is being packed for shipment!',
+    variables: ['Customer Name', 'Order ID'],
+    actions: [{ id: 'wa_a1', type: 'URL', label: 'View Order', value: 'https://connex.io/order' }],
+    status: 'Approved',
+    createdAt: '2026-08-01',
+    updatedAt: '2026-08-01 10:00 AM'
+  },
+  {
+    id: 'wa_tpl_102',
+    templateIdNum: '102',
+    name: 'wa_auth_otp',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'AUTHENTICATION',
+    agentName: 'WhatsApp Security Service',
+    sender: 'WA_AUTH',
+    bodyText: 'Your verification login code is [var1]. Valid for 5 minutes. Do not share this OTP with anyone.',
+    variables: ['OTP Code'],
+    actions: [{ id: 'wa_a2', type: 'QUICK_REPLY', label: 'Copy OTP', value: 'COPY_OTP' }],
+    status: 'Approved',
+    createdAt: '2026-08-02',
+    updatedAt: '2026-08-02 11:30 AM'
+  },
+  {
+    id: 'wa_tpl_103',
+    templateIdNum: '103',
+    name: 'wa_marketing_promo',
+    channel: 'WhatsApp',
+    type: 'Rich Card',
+    category: 'MARKETING',
+    agentName: 'WhatsApp Commerce',
+    sender: 'WA_MARKETING',
+    bodyText: 'Hey [var1]! Special 20% discount on your favorite item [var2]. Use coupon code [var3] during checkout.',
+    variables: ['Customer Name', 'Product', 'Coupon'],
+    actions: [{ id: 'wa_a3', type: 'URL', label: 'Shop Now', value: 'https://connex.io/shop' }],
+    status: 'Approved',
+    createdAt: '2026-08-03',
+    updatedAt: '2026-08-03 02:00 PM'
   }
 ];
 
@@ -254,13 +302,44 @@ const initialTenants: TenantAccount[] = [
     companyName: 'Acme Global Enterprises',
     accountId: 'RMLUAT11',
     accountPassword: 'Cnx@Acme9921!',
+    jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiJhY21lX2FkbWluIiwiZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_rmluat11',
     adminName: 'Aritra Sardar',
     email: 'aritra.sardar2805@gmail.com',
     userType: 'Both',
     channels: ['RCS', 'WhatsApp', 'Viber', 'Acculync'],
-    walletBalance: 0.00,
+    walletBalance: 5000.00,
+    status: 'Active',
+    childUsersCount: 2,
+    createdAt: new Date().toISOString().split('T')[0]
+  },
+  {
+    id: 'tnt_2',
+    companyName: 'WhatsApp Direct Retailers',
+    accountId: 'WA_ONLY_01',
+    accountPassword: 'WaPass_9921!',
+    jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MiwidXNlcm5hbWUiOiJ3YV9vbmx5X3VzZXIiLCJleHAiOjE3OTEyMzQ1Njd9.connex_jwt_token_wa01',
+    adminName: 'Rahul Verma',
+    email: 'rahul.verma@retailers.io',
+    userType: 'WhatsApp',
+    channels: ['WhatsApp'],
+    walletBalance: 2500.00,
     status: 'Active',
     childUsersCount: 0,
+    createdAt: new Date().toISOString().split('T')[0]
+  },
+  {
+    id: 'tnt_3',
+    companyName: 'RCS Enterprise Banking',
+    accountId: 'RCS_ONLY_02',
+    accountPassword: 'RcsPass_8832!',
+    jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MywidXNlcm5hbWUiOiJyY3Nfb25seV91c2VyIiwiZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_rcs02',
+    adminName: 'Priya Sharma',
+    email: 'priya.sharma@finbank.com',
+    userType: 'RCS',
+    channels: ['RCS'],
+    walletBalance: 3200.00,
+    status: 'Active',
+    childUsersCount: 1,
     createdAt: new Date().toISOString().split('T')[0]
   }
 ];
@@ -512,6 +591,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'Invalid account password. Please check your credentials or contact your Admin.' };
     }
 
+    const token = foundTenant.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${foundTenant.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${foundTenant.accountId.toLowerCase()}`;
+
     const newProfile: UserProfile = {
       name: foundTenant.adminName || foundTenant.companyName || 'Tenant User',
       email: foundTenant.email || 'user@connex.com',
@@ -525,10 +606,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWalletBalance(foundTenant.walletBalance ?? 0);
     setIsUserLoggedIn(true);
 
+    // Auto set active channel according to userType segregation
+    if (foundTenant.userType === 'WhatsApp') {
+      setActiveChannel('WhatsApp');
+    } else if (foundTenant.userType === 'RCS') {
+      setActiveChannel('RCS');
+    }
+
     localStorage.setItem('connex_user_profile', JSON.stringify(newProfile));
     localStorage.setItem('connex_selected_account_id', foundTenant.accountId);
     localStorage.setItem('connex_wallet_balance', (foundTenant.walletBalance ?? 0).toString());
     localStorage.setItem('connex_user_logged_in', 'true');
+    localStorage.setItem('rml_jwt_token', token);
 
     return { success: true, message: `Successfully authenticated as ${foundTenant.companyName}`, tenant: foundTenant };
   };
@@ -536,6 +625,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const switchTenantAccount = (tenantId: string) => {
     const found = tenants.find(t => t.id === tenantId || t.accountId === tenantId);
     if (found) {
+      const token = found.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${found.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${found.accountId.toLowerCase()}`;
       const newProfile: UserProfile = {
         name: found.adminName || found.companyName,
         email: found.email,
@@ -548,12 +638,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setWalletBalance(found.walletBalance ?? 0);
       setIsUserLoggedIn(true);
 
+      if (found.userType === 'WhatsApp') {
+        setActiveChannel('WhatsApp');
+      } else if (found.userType === 'RCS') {
+        setActiveChannel('RCS');
+      }
+
       localStorage.setItem('connex_user_profile', JSON.stringify(newProfile));
       localStorage.setItem('connex_selected_account_id', found.accountId);
       localStorage.setItem('connex_wallet_balance', (found.walletBalance ?? 0).toString());
       localStorage.setItem('connex_user_logged_in', 'true');
+      localStorage.setItem('rml_jwt_token', token);
     }
   };
+
+  // Enforce channel access boundaries based on current tenant userType
+  useEffect(() => {
+    const activeTenant = tenants.find(t => t.accountId === selectedAccountId);
+    if (activeTenant) {
+      if (activeTenant.userType === 'WhatsApp' && activeChannel !== 'WhatsApp') {
+        setActiveChannel('WhatsApp');
+      } else if (activeTenant.userType === 'RCS' && activeChannel !== 'RCS') {
+        setActiveChannel('RCS');
+      }
+    }
+  }, [selectedAccountId, tenants, activeChannel]);
 
   const logoutUser = () => {
     setIsUserLoggedIn(false);
@@ -592,9 +701,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addTenant = (tenantData: Omit<TenantAccount, 'id' | 'createdAt' | 'childUsersCount'>) => {
+    const generatedJwt = tenantData.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo${Math.floor(100000 + Math.random() * 900000)},"username":"${(tenantData.accountId || 'user').toLowerCase()}","exp":1791234567}.connex_jwt_token_${(tenantData.accountId || 'user').toLowerCase()}_${Date.now()}`;
+    
     const newTenant: TenantAccount = {
       ...tenantData,
       id: `tnt_${Date.now()}`,
+      jwtToken: generatedJwt,
       childUsersCount: 0,
       createdAt: new Date().toISOString().split('T')[0]
     };

@@ -42,8 +42,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setActiveChannel,
     activeTab,
     setActiveTab,
-    logoutUser
+    logoutUser,
+    tenants,
+    selectedAccountId
   } = useApp();
+
+  const currentTenant = tenants.find(t => t.accountId === selectedAccountId);
 
   // Track expanded channels
   const [expandedChannels, setExpandedChannels] = useState<Record<ChannelType, boolean>>({
@@ -72,7 +76,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     SMS: <MessageSquare className="w-4 h-4 text-slate-600" />
   };
 
-  const channelList: ChannelType[] = ['RCS', 'WhatsApp', 'Viber', 'Acculync'];
+  const channelList: ChannelType[] = React.useMemo(() => {
+    const userType = currentTenant?.userType;
+    if (userType === 'WhatsApp') return ['WhatsApp'];
+    if (userType === 'RCS') return ['RCS'];
+    return ['RCS', 'WhatsApp', 'Viber', 'Acculync'];
+  }, [currentTenant?.userType]);
 
   const subMenuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },

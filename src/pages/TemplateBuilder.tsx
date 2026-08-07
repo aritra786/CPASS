@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { MobileDevicePreview } from '../components/MobileDevicePreview';
 import { ChannelType, TemplateAction, TemplateType } from '../types';
@@ -11,13 +11,25 @@ import {
   ArrowLeft,
   Sparkles,
   Download,
-  HelpCircle,
   Upload,
   Image as ImageIcon,
-  FileDown,
-  Layers,
   Info,
-  CreditCard
+  Megaphone,
+  Bell,
+  MessageSquare,
+  Copy,
+  BookOpen,
+  Tag,
+  Grid,
+  Book,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Smile,
+  ExternalLink,
+  PhoneCall,
+  Video
 } from 'lucide-react';
 
 import { backendApi } from '../services/backendApi';
@@ -28,8 +40,6 @@ interface CarouselCardItem {
   description: string;
   mediaUrl: string;
   mediaType: 'Image' | 'Video';
-  width: 'Small' | 'Medium' | 'Full';
-  height: 'Short' | 'Medium' | 'Tall';
   actions: TemplateAction[];
 }
 
@@ -39,91 +49,94 @@ interface TemplateBuilderProps {
 }
 
 export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel, onCancel }) => {
-  const { activeChannel, addTemplate, setActiveTab } = useApp();
+  const { activeChannel, addTemplate, setActiveTab, tenants, selectedAccountId } = useApp();
 
-  // Selected Channel for the Template: WhatsApp vs RCS
-  const [templateChannel, setTemplateChannel] = useState<'WhatsApp' | 'RCS'>(
-    initialChannel || (activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS')
-  );
+  const currentTenant = tenants.find(t => t.accountId === selectedAccountId);
+  const allowedUserType = currentTenant?.userType || 'Both';
 
-  // Form State
+  // Selected Channel: WhatsApp vs RCS
+  const [templateChannel, setTemplateChannel] = useState<'WhatsApp' | 'RCS'>(() => {
+    if (allowedUserType === 'WhatsApp') return 'WhatsApp';
+    if (allowedUserType === 'RCS') return 'RCS';
+    return initialChannel || (activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS');
+  });
+
+  // Section 1: Basic Information State matching screenshots
+  const [category, setCategory] = useState<'Marketing' | 'Utility' | 'Authentication'>('Marketing');
+  const [subcategory, setSubcategory] = useState<
+    'Default' | 'Carousel' | 'Copy code' | 'Catalog' | 'Limited Time Offer' | 'Multi-Product Message Template'
+  >('Default');
   const [templateName, setTemplateName] = useState('');
-  const [templateType, setTemplateType] = useState<TemplateType>('Text');
-  const [agentName, setAgentName] = useState(templateChannel === 'WhatsApp' ? 'WABA 109481 (Meta)' : 'Select Agent Name');
-  const [messageOrder, setMessageOrder] = useState('Select Message Order');
+  const [language, setLanguage] = useState('English');
+  const [agentName, setAgentName] = useState('WABA 109481 (Meta)');
 
-  // Variables
-  const [variables, setVariables] = useState<string[]>([]);
-  const [newVarInput, setNewVarInput] = useState('');
-
-  // Text message content
-  const [bodyText, setBodyText] = useState('');
-
-  // Rich card / Media State
-  const [mediaType, setMediaType] = useState<'Image' | 'Video'>('Image');
-  const [mediaWidth, setMediaWidth] = useState<'Small' | 'Medium' | 'Full'>('Small');
-  const [mediaHeight, setMediaHeight] = useState<'Short' | 'Medium' | 'Tall'>('Short');
+  // Section 2: Message Content State matching screenshots
+  const [headerType, setHeaderType] = useState<'None' | 'Text' | 'Media'>('None');
+  const [mediaType, setMediaType] = useState<'Image' | 'Video' | 'Document'>('Image');
+  const [headerText, setHeaderText] = useState('');
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
-
-  // Carousel Cards State
+  
+  const [bodyText, setBodyText] = useState('');
+  const [footerText, setFooterText] = useState('');
+  
+  // Carousel State matching Screenshot 4
   const [carouselCards, setCarouselCards] = useState<CarouselCardItem[]>([
-    {
-      id: 'card_1',
-      title: 'Card 1',
-      description: 'No description yet',
-      mediaUrl: '',
-      mediaType: 'Image',
-      width: 'Small',
-      height: 'Short',
-      actions: []
-    },
-    {
-      id: 'card_2',
-      title: 'Card 2',
-      description: 'No description yet',
-      mediaUrl: '',
-      mediaType: 'Image',
-      width: 'Small',
-      height: 'Short',
-      actions: []
-    }
+    { id: 'card_1', title: 'Card 1', description: '', mediaUrl: '', mediaType: 'Image', actions: [] },
+    { id: 'card_2', title: 'Card 2', description: '', mediaUrl: '', mediaType: 'Image', actions: [] }
   ]);
   const [selectedCarouselIndex, setSelectedCarouselIndex] = useState(0);
 
-  // Actions
+  // Buttons State
   const [actions, setActions] = useState<TemplateAction[]>([]);
+
+  // Advanced Options State
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [ttlSeconds, setTtlSeconds] = useState('');
+
+  // Variables & Modals
+  const [variables, setVariables] = useState<string[]>([]);
+  const [showGuidelineModal, setShowGuidelineModal] = useState(false);
+  const [showAddSampleModal, setShowAddSampleModal] = useState(false);
+  const [sampleValues, setSampleValues] = useState<Record<string, string>>({});
 
   const [isSaved, setIsSaved] = useState(false);
 
-  // Determine if Section 1 is filled
-  const isDetailsComplete = Boolean(templateName.trim() && agentName !== 'Select Agent Name');
-
-  const handleAddVariable = () => {
-    if (!newVarInput.trim()) return;
-    if (!variables.includes(newVarInput.trim())) {
-      setVariables(prev => [...prev, newVarInput.trim()]);
+  useEffect(() => {
+    if (allowedUserType === 'WhatsApp') {
+      setTemplateChannel('WhatsApp');
+      setAgentName('WABA 109481 (Meta)');
+    } else if (allowedUserType === 'RCS') {
+      setTemplateChannel('RCS');
+      setAgentName('RMLUAT11');
     }
-    setNewVarInput('');
+  }, [allowedUserType]);
+
+  // Determine if Basic Information is filled (Step 1 unlock logic)
+  const isBasicInfoComplete = Boolean(templateName.trim().length > 0);
+
+  const handleAddVariableToBody = () => {
+    const nextVarNum = variables.length + 1;
+    const varTag = `[var${nextVarNum}]`;
+    setBodyText(prev => prev + ` ${varTag}`);
+    setVariables(prev => [...prev, `var${nextVarNum}`]);
   };
 
-  const handleRemoveVariable = (varName: string) => {
-    setVariables(prev => prev.filter(v => v !== varName));
+  const handleInsertFormat = (formatSymbol: string) => {
+    setBodyText(prev => `${prev}${formatSymbol}text${formatSymbol}`);
   };
 
   const handleAddCarouselCard = () => {
     if (carouselCards.length >= 10) {
-      alert('Maximum 10 cards allowed per carousel template.');
+      alert('Maximum 10 cards allowed in a carousel template.');
       return;
     }
     const newIdx = carouselCards.length + 1;
     const newCard: CarouselCardItem = {
       id: `card_${Date.now()}`,
       title: `Card ${newIdx}`,
-      description: 'No description yet',
+      description: '',
       mediaUrl: '',
       mediaType: 'Image',
-      width: 'Small',
-      height: 'Short',
       actions: []
     };
     setCarouselCards(prev => [...prev, newCard]);
@@ -131,24 +144,24 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
   };
 
   const handleRemoveCarouselCard = (id: string) => {
-    if (carouselCards.length <= 1) {
-      alert('Carousel requires at least 1 card.');
+    if (carouselCards.length <= 2) {
+      alert('Carousel requires at least 2 cards.');
       return;
     }
     setCarouselCards(prev => prev.filter(c => c.id !== id));
     setSelectedCarouselIndex(0);
   };
 
-  const handleAddAction = () => {
-    if (actions.length >= 4) {
-      alert('Maximum 4 interactive actions allowed.');
+  const handleAddAction = (type: 'QUICK_REPLY' | 'URL' | 'PHONE' | 'COPY_CODE' = 'QUICK_REPLY') => {
+    if (actions.length >= 3 && templateChannel === 'WhatsApp') {
+      alert('Maximum 3 buttons allowed for standard WhatsApp templates.');
       return;
     }
     const newAct: TemplateAction = {
       id: `act_${Date.now()}`,
-      type: 'QUICK_REPLY',
-      label: 'Action Button',
-      value: 'ACTION_VAL'
+      type,
+      label: type === 'URL' ? 'Visit Website' : type === 'PHONE' ? 'Call Us' : 'Quick Reply',
+      value: type === 'URL' ? 'https://example.com' : type === 'PHONE' ? '+1234567890' : 'RESPONSE'
     };
     setActions(prev => [...prev, newAct]);
   };
@@ -167,28 +180,32 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
       alert('Please enter a template name.');
       return;
     }
-    if (agentName === 'Select Agent Name') {
-      alert('Please select an agent name.');
-      return;
-    }
+
+    const formattedName = templateName.toLowerCase().replace(/\s+/g, '_');
 
     const newTplData = {
-      name: templateName.toLowerCase().replace(/\s+/g, '_'),
+      name: formattedName,
       channel: templateChannel,
-      type: templateType,
+      type: (subcategory === 'Carousel' ? 'Carousel' : headerType === 'Media' ? 'Rich Card' : 'Text') as TemplateType,
       agentName,
-      bodyText: bodyText || (templateType === 'Carousel' ? 'Carousel template' : 'Template body'),
+      category,
+      subcategory,
+      language,
+      bodyText: bodyText || (subcategory === 'Carousel' ? 'Carousel template' : 'Template body text'),
+      headerType: headerType === 'Media' ? mediaType : headerType,
+      headerText,
       headerMediaUrl,
-      headerType: (templateType === 'Rich Card' ? 'Image' : 'None') as 'Image' | 'Video' | 'None' | 'Document',
+      footerText,
       variables,
       actions,
+      ttlSeconds,
       status: 'Approved' as const
     };
 
-    // 1. Add locally to AppContext
+    // 1. Add locally
     addTemplate(newTplData);
 
-    // 2. Call backend server API endpoint
+    // 2. Call backend server
     try {
       await backendApi.saveTemplate(newTplData);
     } catch (err) {
@@ -209,669 +226,1001 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
   return (
     <div className="space-y-6">
 
-      {/* Top Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              if (onCancel) onCancel();
-              else setActiveTab('Template');
-            }}
-            className="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Go Back</span>
-          </button>
+      {/* Top Header Stepper Indicator matching Screenshots 1-4 */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        
+        <div className="flex items-center gap-6 w-full sm:w-auto">
+          {/* Step 1 */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+              1
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">Template Details</div>
+              <div className="text-[11px] text-slate-500">Category, name & language</div>
+            </div>
+          </div>
 
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <span>Create {templateChannel} Template</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${templateChannel === 'WhatsApp' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
-                {templateChannel} Channel
-              </span>
-            </h1>
-            <p className="text-xs text-slate-500">
-              Build your {templateChannel} message template and preview live
-            </p>
+          <div className="hidden md:block w-12 h-px bg-slate-200" />
+
+          {/* Step 2 */}
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center shrink-0 transition-colors ${
+              isBasicInfoComplete ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400 border border-slate-200'
+            }`}>
+              {isBasicInfoComplete ? '2' : <Lock className="w-4 h-4" />}
+            </div>
+            <div>
+              <div className={`text-xs font-bold ${isBasicInfoComplete ? 'text-slate-900' : 'text-slate-400'}`}>
+                Message Content
+              </div>
+              <div className="text-[11px] text-slate-400">Compose your template</div>
+            </div>
           </div>
         </div>
 
+        {/* Top Right Guidelines Action */}
         <button
-          onClick={() => alert("Downloading RCS Template Guideline PDF...")}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 rounded-xl transition-colors shadow-2xs"
+          type="button"
+          onClick={() => setShowGuidelineModal(true)}
+          className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-2"
         >
-          <Download className="w-3.5 h-3.5" />
+          <BookOpen className="w-4 h-4" />
           <span>Template Guideline</span>
         </button>
       </div>
 
-      {/* Main Grid: Stepper Form (Left 7 Cols) & Mobile Live Preview (Right 5 Cols) */}
+      {/* Main Form + Live Preview Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* Left Form Column */}
-        <div className="lg:col-span-7 space-y-5">
+        {/* Form Column (Left 7 Cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          <form onSubmit={handleSaveTemplate} className="space-y-6">
 
-          {/* Stepper Navigation Bar matching Screenshot 1 */}
-          <div className="bg-white rounded-2xl p-3 border border-slate-200 shadow-2xs flex items-center gap-4">
-            
-            {/* Step 1 */}
-            <div className="flex items-center gap-2 flex-1">
-              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                1
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900">Template details</div>
-                <div className="text-[10px] text-slate-500 line-clamp-1">
-                  Set the name, type, agent and variables
-                </div>
-              </div>
-            </div>
-
-            <div className="h-6 w-px bg-slate-200" />
-
-            {/* Step 2 */}
-            <div className="flex items-center gap-2 flex-1">
-              <div className={`w-7 h-7 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
-                isDetailsComplete ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
-              }`}>
-                {isDetailsComplete ? '2' : <Lock className="w-3.5 h-3.5" />}
-              </div>
-              <div>
-                <div className={`text-xs font-bold ${isDetailsComplete ? 'text-slate-900' : 'text-slate-400'}`}>
-                  Message content
-                </div>
-                <div className="text-[10px] text-slate-400 line-clamp-1">
-                  Compose the message, actions and cards for this template
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <form onSubmit={handleSaveTemplate} className="space-y-5">
-
-            {/* SECTION 1: Template details Card matching Screenshots 1-4 */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+            {/* SECTION 1: BASIC INFORMATION matching Screenshots 1-4 */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-5">
               
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4" />
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">Basic Information</h3>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900">Template details</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Set the name, type, agent and variables
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowGuidelineModal(true)}
+                  className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 rounded-xl transition-all flex items-center gap-1.5"
+                >
+                  <Book className="w-3.5 h-3.5" />
+                  <span>Template Guideline</span>
+                </button>
               </div>
 
-              {/* Form Row 1 */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                
-                {/* Channel Selector */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Channel <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={templateChannel}
-                    onChange={(e) => {
-                      const newCh = e.target.value as 'WhatsApp' | 'RCS';
-                      setTemplateChannel(newCh);
-                      if (newCh === 'WhatsApp') setAgentName('WABA 109481 (Meta)');
-                      else setAgentName('RMLUAT11');
-                    }}
-                    className={`w-full px-3 py-2 bg-white border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 shadow-2xs ${
-                      templateChannel === 'WhatsApp' ? 'border-emerald-300 text-emerald-800 focus:ring-emerald-500' : 'border-blue-300 text-blue-800 focus:ring-blue-500'
+              {/* Category Cards Selector matching Screenshots 1-4 */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Category <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  
+                  {/* Marketing */}
+                  <div
+                    onClick={() => setCategory('Marketing')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all relative flex flex-col justify-between ${
+                      category === 'Marketing'
+                        ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-600/20 shadow-2xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                   >
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="RCS">RCS RBM</option>
-                  </select>
-                </div>
+                    {category === 'Marketing' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                    )}
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
+                      <Megaphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900 mb-1">Marketing</div>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Promotions, offers, announcements & re-engagement.
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Template Name */}
+                  {/* Utility */}
+                  <div
+                    onClick={() => setCategory('Utility')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all relative flex flex-col justify-between ${
+                      category === 'Utility'
+                        ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-600/20 shadow-2xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    {category === 'Utility' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                    )}
+                    <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
+                      <Bell className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900 mb-1">Utility</div>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Order updates, reminders & account notifications.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Authentication */}
+                  <div
+                    onClick={() => setCategory('Authentication')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all relative flex flex-col justify-between ${
+                      category === 'Authentication'
+                        ? 'border-blue-600 bg-blue-50/20 ring-2 ring-blue-600/20 shadow-2xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    {category === 'Authentication' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                    )}
+                    <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900 mb-1">Authentication</div>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        One-time passcodes & verification messages.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Select Subcategory Grid matching Screenshots 1-4 */}
+              <div className="space-y-2 pt-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Select Subcategory <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  
+                  {/* Default */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Default')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Default'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
+                    <span>Default</span>
+                  </button>
+
+                  {/* Carousel */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Carousel')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Carousel'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                    <span>Carousel</span>
+                  </button>
+
+                  {/* Copy code */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Copy code')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Copy code'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Copy className="w-4 h-4 text-emerald-600" />
+                    <span>Copy code</span>
+                  </button>
+
+                  {/* Catalog */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Catalog')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Catalog'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4 text-amber-600" />
+                    <span>Catalog</span>
+                  </button>
+
+                  {/* Limited Time Offer */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Limited Time Offer')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Limited Time Offer'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Tag className="w-4 h-4 text-rose-600" />
+                    <span>Limited Time Offer</span>
+                  </button>
+
+                  {/* Multi-Product Message Template */}
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory('Multi-Product Message Template')}
+                    className={`p-3 rounded-xl border font-bold text-xs flex items-center gap-2.5 transition-all ${
+                      subcategory === 'Multi-Product Message Template'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Grid className="w-4 h-4 text-purple-600" />
+                    <span className="truncate">Multi-Product Message Template</span>
+                  </button>
+
+                </div>
+              </div>
+
+              {/* Name & Language Row matching Screenshots 1-4 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                
+                {/* Name */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Template Name <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Name <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {templateName.length}/512
+                    </span>
+                  </div>
                   <input
                     type="text"
                     required
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
                     placeholder="Enter template name..."
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                   />
                 </div>
 
-                {/* Template Type */}
+                {/* Language */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Template Type <span className="text-rose-500">*</span>
+                    Language <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    value={templateType}
-                    onChange={(e) => setTemplateType(e.target.value as TemplateType)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-                  >
-                    <option value="Text">Text</option>
-                    <option value="Rich Card">Rich Card</option>
-                    <option value="Carousel">Carousel</option>
-                    <option value="Text + PDF">Text + PDF</option>
-                  </select>
-                </div>
-
-                {/* Agent Name */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Agent Name <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={agentName}
-                    onChange={(e) => setAgentName(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-                  >
-                    <option value="Select Agent Name">Select Agent Name</option>
-                    {templateChannel === 'WhatsApp' ? (
-                      <>
-                        <option value="WABA 109481 (Meta)">WABA 109481 (Meta)</option>
-                        <option value="WhatsApp Business API">WA Business Direct</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="RMLUAT11">RMLUAT11</option>
-                        <option value="routeotp">routeotp</option>
-                        <option value="CONNEX Support">CONNEX Support</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-              </div>
-
-              {/* Form Row 2: Variables & Message Order */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                
-                {/* Variables */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Variables
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newVarInput}
-                      onChange={(e) => setNewVarInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddVariable();
-                        }
-                      }}
-                      placeholder="Add Variables ..."
-                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddVariable}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add</span>
-                    </button>
-                  </div>
-
-                  {variables.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {variables.map((v, i) => (
-                        <span
-                          key={v}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg"
-                        >
-                          <span>[var{i + 1}]: {v}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariable(v)}
-                            className="text-blue-400 hover:text-blue-800 text-sm font-bold"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Message Order (Shown for Text + PDF) matching Screenshot 4 */}
-                {templateType === 'Text + PDF' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Message Order
-                    </label>
+                  <div className="relative">
                     <select
-                      value={messageOrder}
-                      onChange={(e) => setMessageOrder(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs appearance-none pr-10"
                     >
-                      <option value="Select Message Order">Select Message Order</option>
-                      <option value="Text then PDF">Text then PDF</option>
-                      <option value="PDF then Text">PDF then Text</option>
+                      <option value="English">English</option>
+                      <option value="Spanish">Spanish</option>
+                      <option value="French">French</option>
+                      <option value="German">German</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Arabic">Arabic</option>
                     </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none text-slate-400">
+                      <span className="text-xs">×</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                )}
+                </div>
 
               </div>
 
             </div>
 
-            {/* Complete Notice Banner matching Screenshots 1-4 */}
-            <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2 ${
-              isDetailsComplete
+            {/* Complete Basic Information Warning Banner matching Screenshots 1-4 */}
+            <div className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2.5 font-medium shadow-2xs ${
+              isBasicInfoComplete
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-amber-50/90 border-amber-200 text-amber-800'
+                : 'bg-amber-50 border-amber-200 text-amber-900'
             }`}>
-              {isDetailsComplete ? (
+              {isBasicInfoComplete ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               ) : (
                 <Lock className="w-4 h-4 text-amber-600 shrink-0" />
               )}
               <span>
-                {isDetailsComplete
-                  ? 'Template details complete! Message content unlocked.'
-                  : 'Complete Template details above to unlock Message content.'}
+                {isBasicInfoComplete ? (
+                  <>
+                    Basic Information complete! <strong>Message Content</strong> unlocked below.
+                  </>
+                ) : (
+                  <>
+                    Complete <strong>Basic Information</strong> above to unlock Message Content.
+                  </>
+                )}
               </span>
             </div>
 
-            {/* SECTION 2: Message content Card matching Screenshots 1, 2, 3, 4 */}
-            <div className={`bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4 transition-all ${
-              !isDetailsComplete && 'opacity-60 pointer-events-none'
+            {/* SECTION 2: MESSAGE CONTENT matching Screenshots 1-4 */}
+            <div className={`bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs space-y-5 transition-all ${
+              !isBasicInfoComplete && 'opacity-60 pointer-events-none'
             }`}>
               
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <FileText className="w-4 h-4" />
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-slate-900">Message Content</h3>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900">Message content</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Compose the message, actions and cards for this template
-                  </p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddSampleModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-2xs"
+                >
+                  ADD SAMPLE
+                </button>
               </div>
 
-              {/* Yellow Note Box matching Screenshots 1, 2, 3, 4 */}
-              <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2 font-medium">
-                <Info className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  <strong>NOTE:</strong> Variables to be added in between square brackets i.e [var].
-                </span>
-              </div>
-
-              {/* TYPE SPECIFIC FORM CONTROLE */}
-
-              {/* 1. TEXT ONLY / TEXT + PDF */}
-              {(templateType === 'Text' || templateType === 'Text + PDF') && (
-                <div className="space-y-4">
+              {/* Header (Optional) matching Screenshots 1-4 */}
+              {subcategory !== 'Carousel' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Header <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   
-                  {templateType === 'Text + PDF' && (
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Upload PDF Document
-                      </label>
+                  {/* Option Pills */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHeaderType('None')}
+                      className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                        headerType === 'None'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-2xs'
+                          : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {headerType === 'None' && <Check className="w-3.5 h-3.5" />}
+                      <span>None</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setHeaderType('Text')}
+                      className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                        headerType === 'Text'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-2xs'
+                          : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {headerType === 'Text' && <Check className="w-3.5 h-3.5" />}
+                      <span>Text</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setHeaderType('Media')}
+                      className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                        headerType === 'Media'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-2xs'
+                          : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {headerType === 'Media' && <Check className="w-3.5 h-3.5" />}
+                      <span>Media</span>
+                    </button>
+                  </div>
+
+                  {/* If Media selected */}
+                  {headerType === 'Media' && (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 mt-2">
+                      <div className="text-[11px] font-extrabold uppercase text-slate-500 tracking-wider">
+                        MEDIA TYPE
+                      </div>
                       <div className="flex gap-2">
+                        {(['Image', 'Video', 'Document'] as const).map((mType) => (
+                          <button
+                            key={mType}
+                            type="button"
+                            onClick={() => setMediaType(mType)}
+                            className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+                              mediaType === mType
+                                ? 'border-blue-600 bg-white text-blue-700 shadow-2xs'
+                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {mType === 'Image' && <ImageIcon className="w-3.5 h-3.5" />}
+                            {mType === 'Video' && <Video className="w-3.5 h-3.5" />}
+                            {mType === 'Document' && <FileText className="w-3.5 h-3.5" />}
+                            <span>{mType}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2 pt-1">
                         <input
                           type="url"
-                          placeholder="Paste PDF Document URL (https://...)"
-                          className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white"
+                          value={headerMediaUrl}
+                          onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                          placeholder="Paste media sample URL (https://...)"
+                          className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
                         />
                         <button
                           type="button"
-                          className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5"
+                          onClick={() => setHeaderMediaUrl('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80')}
+                          className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl"
                         >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload PDF</span>
+                          Sample
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Enter Text Message <span className="text-rose-500">*</span>
-                    </label>
+                  {/* If Text selected */}
+                  {headerType === 'Text' && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        maxLength={60}
+                        value={headerText}
+                        onChange={(e) => setHeaderText(e.target.value)}
+                        placeholder="Enter header text..."
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                      />
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+              {/* Body * matching Screenshots 1-4 */}
+              {subcategory !== 'Carousel' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Body <span className="text-rose-500">*</span>
+                  </label>
+                  
+                  {/* Rich Textarea Box with Bottom Formatting Bar */}
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 bg-white shadow-2xs">
                     <textarea
                       rows={5}
-                      maxLength={2500}
+                      maxLength={1024}
                       value={bodyText}
                       onChange={(e) => setBodyText(e.target.value)}
-                      placeholder="Maximum 2500 characters..."
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs leading-relaxed"
+                      placeholder="Enter body text..."
+                      className="w-full p-4 text-xs font-medium text-slate-800 focus:outline-none leading-relaxed resize-y"
                     />
-                  </div>
-                </div>
-              )}
 
-              {/* 2. RICH CARD EDITOR matching Screenshot 2 */}
-              {templateType === 'Rich Card' && (
-                <div className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <h4 className="font-extrabold text-xs text-slate-900 mb-0.5">Rich card</h4>
-                    <p className="text-[11px] text-slate-500">Configure media, text and per-card suggestions</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Media Type</label>
-                      <select
-                        value={mediaType}
-                        onChange={(e) => setMediaType(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
-                      >
-                        <option value="Image">Image</option>
-                        <option value="Video">Video</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Width</label>
-                      <select
-                        value={mediaWidth}
-                        onChange={(e) => setMediaWidth(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
-                      >
-                        <option value="Small">Small</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Full">Full</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Media Height</label>
-                      <select
-                        value={mediaHeight}
-                        onChange={(e) => setMediaHeight(e.target.value as any)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold"
-                      >
-                        <option value="Short">Short</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Tall">Tall</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Media URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={headerMediaUrl}
-                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
-                        placeholder="Enter media URL (https://...)"
-                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setHeaderMediaUrl('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80')}
-                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl"
-                      >
-                        Sample Image
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Enter Card Message / Description
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={bodyText}
-                      onChange={(e) => setBodyText(e.target.value)}
-                      placeholder="Maximum 2500 characters..."
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* 3. CAROUSEL EDITOR matching Screenshot 3 */}
-              {templateType === 'Carousel' && (
-                <div className="space-y-4">
-                  
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <div>
-                      <h4 className="font-extrabold text-xs text-slate-900">Carousel Message Editor</h4>
-                      <p className="text-[11px] text-slate-500">Advanced carousel message cards</p>
-                    </div>
-                    <span className="px-2.5 py-1 bg-slate-200/80 text-slate-700 font-extrabold text-[10px] rounded-lg">
-                      Up to {carouselCards.length}/10
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                    
-                    {/* Left Column: Cards List matching Screenshot 3 */}
-                    <div className="md:col-span-5 space-y-2">
-                      {carouselCards.map((card, idx) => (
-                        <div
-                          key={card.id}
-                          onClick={() => setSelectedCarouselIndex(idx)}
-                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                            selectedCarouselIndex === idx
-                              ? 'bg-red-50/50 border-rose-300 ring-1 ring-rose-300'
-                              : 'bg-white border-slate-200 hover:bg-slate-50'
-                          }`}
+                    {/* Bottom Formatting Toolbar inside textarea box */}
+                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1">
+                        {/* Formatting icons */}
+                        <button
+                          type="button"
+                          onClick={() => handleInsertFormat('*')}
+                          className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 font-bold text-xs"
+                          title="Bold (*text*)"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                              {idx + 1}
-                            </div>
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                              <ImageIcon className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <div className="font-extrabold text-xs text-slate-900">{card.title}</div>
-                              <div className="text-[10px] text-slate-400 line-clamp-1">{card.description}</div>
-                            </div>
-                          </div>
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertFormat('_')}
+                          className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 italic text-xs font-bold"
+                          title="Italic (_text_)"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertFormat('~')}
+                          className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 line-through text-xs font-bold"
+                          title="Strikethrough (~text~)"
+                        >
+                          S
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInsertFormat('```')}
+                          className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 font-mono text-[11px]"
+                          title="Monospace (```text```)"
+                        >
+                          &lt;/&gt;
+                        </button>
 
-                          {carouselCards.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveCarouselCard(card.id);
-                              }}
-                              className="text-slate-400 hover:text-rose-600 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                        <div className="h-4 w-px bg-slate-300 mx-1" />
 
-                      <button
-                        type="button"
-                        onClick={handleAddCarouselCard}
-                        className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-dashed border-blue-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Card</span>
-                      </button>
-
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        You can add up to 10 cards in a carousel template.
-                      </p>
-                    </div>
-
-                    {/* Right Column: Card Details Editor matching Screenshot 3 */}
-                    <div className="md:col-span-7 bg-slate-50/60 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                      <h4 className="font-extrabold text-xs text-slate-800">Card Details</h4>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-600 mb-1">Media Type</label>
-                          <select className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium">
-                            <option value="Image">Image</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-600 mb-1">Width</label>
-                          <select className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium">
-                            <option value="Small">Small</option>
-                          </select>
-                        </div>
+                        {/* Add Variable Button */}
+                        <button
+                          type="button"
+                          onClick={handleAddVariableToBody}
+                          className="px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <span>+ ADD VARIABLE</span>
+                          <Info className="w-3 h-3 text-slate-400" />
+                        </button>
                       </div>
 
+                      {/* Character counter */}
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {bodyText.length}/1024
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CAROUSEL SECTION matching Screenshot 4 */}
+              {subcategory === 'Carousel' && (
+                <div className="space-y-4 pt-2">
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-2">
+                    CAROUSEL SECTION
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Media Height</label>
-                        <select className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium">
-                          <option value="Short">Short</option>
+                        <h4 className="font-extrabold text-sm text-slate-900">Carousel Cards</h4>
+                        <p className="text-[11px] text-slate-500">
+                          All cards share the same set of buttons. Edit each card's content individually.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-slate-700 shrink-0">HEADER TYPE *</label>
+                        <select className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold">
+                          <option value="Image">Image</option>
+                          <option value="Video">Video</option>
                         </select>
                       </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Card Title</label>
-                        <input
-                          type="text"
-                          value={carouselCards[selectedCarouselIndex]?.title || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCarouselCards(prev => prev.map((c, i) => i === selectedCarouselIndex ? { ...c, title: val } : c));
-                          }}
-                          placeholder="Card title"
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Card Description</label>
-                        <textarea
-                          rows={2}
-                          value={carouselCards[selectedCarouselIndex]?.description || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCarouselCards(prev => prev.map((c, i) => i === selectedCarouselIndex ? { ...c, description: val } : c));
-                          }}
-                          placeholder="Card description"
-                          className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs font-medium"
-                        />
-                      </div>
                     </div>
 
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                      
+                      {/* Left: Card Selector */}
+                      <div className="md:col-span-5 space-y-2">
+                        {carouselCards.map((card, idx) => (
+                          <div
+                            key={card.id}
+                            onClick={() => setSelectedCarouselIndex(idx)}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                              selectedCarouselIndex === idx
+                                ? 'bg-white border-blue-600 ring-2 ring-blue-500/20 shadow-2xs'
+                                : 'bg-white/80 border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                                {idx + 1}
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                                <ImageIcon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <div className="font-extrabold text-xs text-slate-900">Card {idx + 1}</div>
+                                <div className="text-[10px] text-slate-400">
+                                  {card.description ? card.description.slice(0, 20) : 'No content yet'}
+                                </div>
+                              </div>
+                            </div>
 
+                            {carouselCards.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveCarouselCard(card.id);
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={handleAddCarouselCard}
+                          className="w-full py-2.5 bg-white hover:bg-slate-100 text-blue-600 border border-dashed border-blue-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Add Card</span>
+                        </button>
+
+                        <p className="text-[10px] text-slate-400">
+                          You can add 2 to 10 cards in a carousel template.
+                        </p>
+                      </div>
+
+                      {/* Right: Card Details Editor */}
+                      <div className="md:col-span-7 bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+                        <h4 className="font-extrabold text-xs text-slate-900">
+                          Card {selectedCarouselIndex + 1} Details
+                        </h4>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            BODY *
+                          </label>
+                          <p className="text-[10px] text-rose-500 mb-1">
+                            Note: In Carousel body only 2 new lines can be added.
+                          </p>
+
+                          <div className="border border-slate-200 rounded-xl overflow-hidden">
+                            <textarea
+                              rows={3}
+                              maxLength={160}
+                              value={carouselCards[selectedCarouselIndex]?.description || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCarouselCards(prev => prev.map((c, i) => i === selectedCarouselIndex ? { ...c, description: val } : c));
+                              }}
+                              placeholder="Enter body text..."
+                              className="w-full p-2.5 text-xs font-medium focus:outline-none"
+                            />
+                            <div className="px-2.5 py-1.5 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+                              <span>+ ADD VARIABLE</span>
+                              <span>{(carouselCards[selectedCarouselIndex]?.description || '').length}/160</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            BUTTONS *
+                          </label>
+                          <p className="text-[10px] text-slate-400 mb-2">
+                            No buttons added yet. Add up to 2 buttons per card — they apply to every card.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleAddAction('URL')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold border border-slate-200 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add CTA-URL</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddAction('PHONE')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold border border-slate-200 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add CTA-Phone</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddAction('QUICK_REPLY')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold border border-slate-200 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add Quick Reply</span>
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Interactive Quick Replies / Action Buttons for all types */}
-              <div className="space-y-3 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Interactive Buttons / Quick Replies ({actions.length}/4)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddAction}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Button</span>
-                  </button>
+              {/* Footer (Optional) matching Screenshots 1-4 */}
+              {subcategory !== 'Carousel' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Footer <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {footerText.length}/60
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    value={footerText}
+                    onChange={(e) => setFooterText(e.target.value)}
+                    placeholder="Enter footer text..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                  />
                 </div>
+              )}
 
-                <div className="space-y-2">
-                  {actions.map((act, i) => (
-                    <div
-                      key={act.id}
-                      className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2"
+              {/* BUTTONS (Optional) matching Screenshots 1-4 */}
+              {subcategory !== 'Carousel' && (
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700">
+                      BUTTONS <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddAction('QUICK_REPLY')}
+                      className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-2xs flex items-center gap-1"
                     >
-                      <select
-                        value={act.type}
-                        onChange={(e) => handleUpdateAction(act.id, 'type', e.target.value as any)}
-                        className="px-2 py-1 text-xs border border-slate-200 rounded-lg bg-white font-semibold"
-                      >
-                        <option value="QUICK_REPLY">Quick Reply</option>
-                        <option value="URL">Visit URL</option>
-                        <option value="PHONE">Call Phone</option>
-                      </select>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Button</span>
+                    </button>
+                  </div>
 
-                      <input
-                        type="text"
-                        value={act.label}
-                        onChange={(e) => handleUpdateAction(act.id, 'label', e.target.value)}
-                        placeholder="Button Label"
-                        className="flex-1 px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white font-medium"
-                      />
+                  {actions.length === 0 ? (
+                    <p className="text-xs text-slate-400 font-medium">
+                      No buttons added yet. Click <strong>Add Button</strong> to attach buttons to your template.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {actions.map((act) => (
+                        <div
+                          key={act.id}
+                          className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2"
+                        >
+                          <select
+                            value={act.type}
+                            onChange={(e) => handleUpdateAction(act.id, 'type', e.target.value as any)}
+                            className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-semibold"
+                          >
+                            <option value="QUICK_REPLY">Quick Reply</option>
+                            <option value="URL">Visit URL</option>
+                            <option value="PHONE">Call Phone</option>
+                            <option value="COPY_CODE">Copy Code</option>
+                          </select>
 
-                      <input
-                        type="text"
-                        value={act.value}
-                        onChange={(e) => handleUpdateAction(act.id, 'value', e.target.value)}
-                        placeholder="Action Value / URL"
-                        className="flex-1 px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-white font-mono text-[11px]"
-                      />
+                          <input
+                            type="text"
+                            value={act.label}
+                            onChange={(e) => handleUpdateAction(act.id, 'label', e.target.value)}
+                            placeholder="Button Text"
+                            className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-medium"
+                          />
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAction(act.id)}
-                        className="text-slate-400 hover:text-rose-600 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          <input
+                            type="text"
+                            value={act.value}
+                            onChange={(e) => handleUpdateAction(act.id, 'value', e.target.value)}
+                            placeholder="Value / URL"
+                            className="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-mono text-[11px]"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAction(act.id)}
+                            className="text-slate-400 hover:text-rose-600 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
 
             </div>
 
-            {/* Save Template Footer */}
+            {/* SECTION 3: ADVANCED OPTIONS matching Screenshots 1-4 */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+              <div
+                onClick={() => setAdvancedExpanded(!advancedExpanded)}
+                className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                    <Grid className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-sm text-slate-900">Advanced Options</h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        Optional
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Message expiry, pricing & delivery preferences
+                    </p>
+                  </div>
+                </div>
+
+                {advancedExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-slate-400" />
+                )}
+              </div>
+
+              {advancedExpanded && (
+                <div className="p-5 pt-0 border-t border-slate-100 space-y-3 mt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      TTL (Time-To-Live)
+                    </label>
+                    <input
+                      type="text"
+                      value={ttlSeconds}
+                      onChange={(e) => setTtlSeconds(e.target.value)}
+                      placeholder="Enter TTL in seconds..."
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Applies via MM Lite — 12 hours to 30 days. All values in seconds.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button Bar matching Screenshots 1-4 */}
             <div className="flex items-center justify-end gap-3 pt-2">
               {isSaved ? (
-                <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-5 py-2.5 rounded-xl border border-emerald-200">
+                <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm bg-emerald-50 px-6 py-3 rounded-xl border border-emerald-200">
                   <CheckCircle2 className="w-5 h-5" />
-                  <span>Template Saved & Submitted for Carrier Approval!</span>
+                  <span>Template Submitted Successfully!</span>
                 </div>
               ) : (
                 <button
                   type="submit"
-                  disabled={!isDetailsComplete}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+                  disabled={!isBasicInfoComplete}
+                  className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Save & Submit Template</span>
+                  <span>SUBMIT TEMPLATE</span>
                 </button>
               )}
             </div>
 
           </form>
-
         </div>
 
-        {/* Right Live Device Preview Column (5 Cols) matching Screenshots 1, 2, 3, 4 */}
-        <div className="lg:col-span-5 sticky top-20">
+        {/* Live Device Preview Column (Right 5 Cols) matching Screenshots 1-4 */}
+        <div className="lg:col-span-5 sticky top-6">
           <MobileDevicePreview
-            channel="RCS"
-            agentName={agentName === 'Select Agent Name' ? 'RCS Business' : agentName}
-            templateType={templateType}
+            channel={templateChannel}
+            agentName="Route Mobile"
+            templateType={subcategory === 'Carousel' ? 'Carousel' : headerType === 'Media' ? 'Rich Card' : 'Text'}
             bodyText={bodyText}
             headerMediaUrl={headerMediaUrl}
-            headerType={templateType === 'Rich Card' ? 'Image' : 'None'}
+            headerType={headerType}
+            headerText={headerText}
+            footerText={footerText}
             actions={actions}
             variables={variables}
-            messageOrder={messageOrder}
             cards={carouselCards.map(c => ({
               title: c.title,
               description: c.description,
-              mediaUrl: c.mediaUrl,
-              actions: c.actions
+              mediaUrl: c.mediaUrl
             }))}
+            subcategory={subcategory}
           />
         </div>
 
       </div>
+
+      {/* Guideline Modal */}
+      {showGuidelineModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                <span>WhatsApp Template Guidelines</span>
+              </h3>
+              <button
+                onClick={() => setShowGuidelineModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-slate-600 leading-relaxed max-h-96 overflow-y-auto pr-1">
+              <p>
+                <strong>Category Rules:</strong>
+                <br />
+                - <strong>Marketing:</strong> Promotions, product launches, discounts.
+                <br />
+                - <strong>Utility:</strong> Post-purchase updates, invoices, delivery status.
+                <br />
+                - <strong>Authentication:</strong> One-time passcodes (OTP).
+              </p>
+              <p>
+                <strong>Formatting Shortcuts:</strong>
+                <br />
+                - Bold: <code className="bg-slate-100 px-1 rounded">*text*</code>
+                <br />
+                - Italic: <code className="bg-slate-100 px-1 rounded">_text_</code>
+                <br />
+                - Strikethrough: <code className="bg-slate-100 px-1 rounded">~text~</code>
+                <br />
+                - Monospace: <code className="bg-slate-100 px-1 rounded">```text```</code>
+              </p>
+              <p>
+                <strong>Variables:</strong> Place variables inside square brackets or double curly braces (e.g. <code className="bg-slate-100 px-1 rounded">[var1]</code> or <code className="bg-slate-100 px-1 rounded">{"{{1}}"}</code>).
+              </p>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setShowGuidelineModal(false)}
+                className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Sample Modal */}
+      {showAddSampleModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-base text-slate-900">Add Sample Variable Values</h3>
+              <button
+                onClick={() => setShowAddSampleModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">
+                Provide sample values for Meta template validation (e.g. [var1] = "John"):
+              </p>
+
+              {variables.length === 0 ? (
+                <p className="text-xs font-semibold text-amber-600 bg-amber-50 p-3 rounded-xl">
+                  No variables detected in body yet. Add variables using the "+ ADD VARIABLE" button.
+                </p>
+              ) : (
+                variables.map((v, idx) => (
+                  <div key={v}>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Sample for [{v}]
+                    </label>
+                    <input
+                      type="text"
+                      value={sampleValues[v] || ''}
+                      onChange={(e) => setSampleValues({ ...sampleValues, [v]: e.target.value })}
+                      placeholder={`Example for ${v}...`}
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                onClick={() => setShowAddSampleModal(false)}
+                className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl"
+              >
+                Save Samples
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

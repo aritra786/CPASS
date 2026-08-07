@@ -36,9 +36,16 @@ export const SendMessage: React.FC = () => {
   const [customMessage, setCustomMessage] = useState('Hello! Welcome to CONNEX CPaaS platform services.');
   
   // API Key State
-  const [jwtToken, setJwtToken] = useState<string>(() => routeMobileApi.getToken());
+  const [jwtToken, setJwtToken] = useState<string>(() => routeMobileApi.getToken() || localStorage.getItem('rml_jwt_token') || '');
   const [showApiSettings, setShowShowApiSettings] = useState<boolean>(false);
   const [apiResponseDetails, setApiResponseDetails] = useState<any | null>(null);
+
+  // Template variables state
+  const [templateVariableValues, setTemplateVariableValues] = useState<Record<string, string>>({
+    'var1': 'John Doe',
+    'var2': '99821',
+    'var3': 'CONFIRM30'
+  });
 
   // Bulk state
   const [campaignName, setCampaignName] = useState('Q3 Customer Re-Engagement');
@@ -48,6 +55,31 @@ export const SendMessage: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+
+  // Auto populate customMessage when template is selected
+  const handleSelectTemplate = (tplId: string) => {
+    setSelectedTemplateId(tplId);
+    const tpl = templates.find(t => t.id === tplId);
+    if (tpl) {
+      setCustomMessage(tpl.bodyText || '');
+    }
+  };
+
+  // Compute final interpolated message body replacing [var1], {{1}}, etc.
+  const getInterpolatedMessage = (): string => {
+    let msg = customMessage;
+    if (selectedTemplate && selectedTemplate.variables) {
+      selectedTemplate.variables.forEach((v, idx) => {
+        const val = templateVariableValues[`var_${idx + 1}`] || templateVariableValues[v] || `[${v}]`;
+        msg = msg.replace(`[var${idx + 1}]`, val)
+                 .replace(`{{${idx + 1}}}`, val)
+                 .replace(`[${v}]`, val);
+      });
+    }
+    return msg;
+  };
 
   // Rate lookup for channel
   const matchedRate = rateCards.find(r => r.channel === activeChannel);
@@ -82,8 +114,14 @@ export const SendMessage: React.FC = () => {
     setIsSending(true);
 
     try {
-      const selectedTpl = templates.find(t => t.id === selectedTemplateId);
-      const tName = selectedTpl ? selectedTpl.name : 'session_direct';
+      const finalMsgText = getInterpolatedMessage();
+      const tName = selectedTemplate ? selectedTemplate.name : 'session_direct';
+
+      // Ensure active token is saved in routeMobileApi
+      const activeToken = jwtToken || routeMobileApi.getToken() || localStorage.getItem('rml_jwt_token') || '';
+      if (activeToken) {
+        routeMobileApi.setToken(activeToken);
+      }
 
       // Live Backend API Message Dispatcher (/api/messages/send)
       let apiResult: any = null;
@@ -91,9 +129,10 @@ export const SendMessage: React.FC = () => {
         apiResult = await backendApi.sendMessage({
           channel: activeChannel === 'WhatsApp' ? 'WhatsApp' : 'RCS',
           recipientPhone,
-          text: customMessage,
+          text: finalMsgText,
           templateId: tName,
-          sender: selectedTpl?.agentName || 'CONNEX Gateway'
+          variables: Object.values(templateVariableValues),
+          sender: selectedTemplate?.agentName || 'WA_GATEWAY'
         });
         setApiResponseDetails(apiResult);
       } catch (errApi) {
@@ -338,7 +377,7 @@ export const SendMessage: React.FC = () => {
         )}
 
         {/* Approved Template Selection */}
-        <div>
+        <div className="space-y-3">
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-bold text-slate-700">
               Select Approved {activeChannel} Template
@@ -354,18 +393,72 @@ export const SendMessage: React.FC = () => {
 
           <select
             value={selectedTemplateId}
-            onChange={(e) => setSelectedTemplateId(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden bg-white font-medium"
+            onChange={(e) => handleSelectTemplate(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden bg-white font-bold text-slate-800"
           >
             <option value="">-- Direct Custom Message (Session) --</option>
             {templates
-              .filter(t => t.channel === activeChannel)
+              .filter(t => t.channel?.toLowerCase() === activeChannel.toLowerCase())
               .map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.type}) - {t.agentName}
+                  {t.name} ({t.type}) [{t.category}] - {t.agentName || t.sender}
                 </option>
               ))}
           </select>
+
+          {/* If template has variables, render dynamic input fields */}
+          {selectedTemplate && selectedTemplate.variables && selectedTemplate.variables.length > 0 && (
+            <div className="p-3.5 bg-blue-50/60 border border-blue-200/80 rounded-xl space-y-2.5">
+              <div className="text-xs font-extrabold text-blue-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>Template Dynamic Variables ({selectedTemplate.variables.length})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {selectedTemplate.variables.map((v, idx) => (
+                  <div key={idx}>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                      Variable #{idx + 1}: <span className="font-mono text-blue-700">{v}</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={templateVariableValues[`var_${idx + 1}`] || ''}
+                      onChange={(e) => setTemplateVariableValues(prev => ({
+                        ...prev,
+                        [`var_${idx + 1}`]: e.target.value,
+                        [v]: e.target.value
+                      }))}
+                      placeholder={`Enter value for ${v}...`}
+                      className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Message Text Body / Preview Box */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Message Content / Template Text
+            </label>
+            <textarea
+              rows={3}
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-800"
+              placeholder="Type session message content..."
+            />
+          </div>
+
+          {/* Live Substituted Preview */}
+          <div className="p-3 bg-slate-900 text-slate-100 rounded-xl space-y-1">
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400">
+              Live Substituted {activeChannel} Preview:
+            </div>
+            <div className="text-xs font-sans text-slate-200 bg-slate-800/80 p-2.5 rounded-lg border border-slate-700">
+              {getInterpolatedMessage()}
+            </div>
+          </div>
         </div>
 
         {/* Cost Summary Box */}

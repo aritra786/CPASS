@@ -549,7 +549,8 @@ export const AdminUsers: React.FC = () => {
                 filteredTenants.map(t => {
                   const showPass = !!visiblePasswords[t.id];
                   const passwordText = t.accountPassword || 'CnxSecret_9921#';
-                  const jwtStr = t.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${t.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${t.accountId.toLowerCase()}`;
+                  const accountIdClean = (t.accountId || 'user').toLowerCase();
+                  const jwtStr = t.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${accountIdClean}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${accountIdClean}`;
 
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">

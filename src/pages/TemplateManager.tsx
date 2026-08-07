@@ -119,9 +119,10 @@ export const TemplateManager: React.FC = () => {
   });
 
   const filteredTemplates = channelTemplates.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.bodyText && t.bodyText.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (t.templateIdNum && t.templateIdNum.includes(searchQuery));
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = (t.name || '').toLowerCase().includes(q) ||
+      (t.bodyText && t.bodyText.toLowerCase().includes(q)) ||
+      (t.templateIdNum && t.templateIdNum.includes(searchQuery || ''));
 
     if (statusFilter === 'All') return matchesSearch;
     if (statusFilter === 'Approved') return matchesSearch && t.status === 'Approved';

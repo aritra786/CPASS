@@ -367,8 +367,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [portalMode, setPortalModeState] = useState<'user' | 'admin'>(() => {
     if (typeof window !== 'undefined') {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
+      const path = (window.location?.pathname || '').toLowerCase();
+      const hash = (window.location?.hash || '').toLowerCase();
       if (path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') return 'admin';
     }
     return 'user';
@@ -642,7 +642,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, message: 'Invalid account password. Please check your credentials or contact your Admin.' };
     }
 
-    const token = foundTenant.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${foundTenant.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${foundTenant.accountId.toLowerCase()}`;
+    const accIdClean = (foundTenant.accountId || 'user').toLowerCase();
+    const token = foundTenant.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${accIdClean}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${accIdClean}`;
 
     const newProfile: UserProfile = {
       name: foundTenant.adminName || foundTenant.companyName || 'Tenant User',
@@ -676,7 +677,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const switchTenantAccount = (tenantId: string) => {
     const found = tenants.find(t => t.id === tenantId || t.accountId === tenantId);
     if (found) {
-      const token = found.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${found.accountId.toLowerCase()}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${found.accountId.toLowerCase()}`;
+      const accClean = (found.accountId || 'user').toLowerCase();
+      const token = found.jwtToken || `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${accClean}\",\"ZXhwIjoxNzkxMjM0NTY3fQ.connex_jwt_token_${accClean}`;
       const newProfile: UserProfile = {
         name: found.adminName || found.companyName,
         email: found.email,

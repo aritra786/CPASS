@@ -205,7 +205,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
       return;
     }
 
-    const formattedName = templateName.toLowerCase().replace(/\s+/g, '_');
+    const formattedName = (templateName || 'template').toLowerCase().replace(/\s+/g, '_');
 
     // Construct Route Mobile WhatsApp Template Registration API Payload
     const rmlComponents: any[] = [];
@@ -1335,7 +1335,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
                           setSampleHeaderMediaUrl(e.target.value);
                           setHeaderMediaUrl(e.target.value);
                         }}
-                        placeholder={`Paste sample ${mediaType.toLowerCase()} URL (https://...)...`}
+                        placeholder={`Paste sample ${(mediaType || 'media').toLowerCase()} URL (https://...)...`}
                         className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
                       />
                       <label className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-2xs">

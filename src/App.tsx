@@ -29,8 +29,8 @@ const MainAppLayout: React.FC = () => {
   const [addFundsOpen, setAddFundsOpen] = useState(false);
 
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
+    const path = (window.location?.pathname || '').toLowerCase();
+    const hash = (window.location?.hash || '').toLowerCase();
     if (path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') return '/admin';
     return '/';
   });

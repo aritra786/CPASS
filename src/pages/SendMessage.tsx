@@ -409,7 +409,7 @@ export const SendMessage: React.FC = () => {
           >
             <option value="">-- Direct Custom Message (Session) --</option>
             {templates
-              .filter(t => t.channel?.toLowerCase() === activeChannel.toLowerCase())
+              .filter(t => (t.channel || '').toLowerCase() === (activeChannel || '').toLowerCase())
               .map((t, idx) => (
                 <option key={`${t.id}_${idx}`} value={t.id}>
                   {t.name} ({t.type}) [{t.category}] - {t.agentName || t.sender}

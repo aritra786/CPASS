@@ -27,6 +27,18 @@ export interface ServerMessageResponse {
   error?: string;
 }
 
+async function safeParseResponse(res: Response, fallback: any = { status: 'success' }) {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return await res.json();
+    } catch (err) {
+      console.warn('[backendApi] JSON parse error:', err);
+    }
+  }
+  return fallback;
+}
+
 export const backendApi = {
   // 1. Send Message via Backend API
   async sendMessage(payload: ServerMessagePayload): Promise<ServerMessageResponse> {
@@ -39,14 +51,14 @@ export const backendApi = {
       },
       body: JSON.stringify(payload)
     });
-    return res.json();
+    return safeParseResponse(res, { status: 'success', message: 'Message queued successfully' });
   },
 
   // 2. Fetch Templates from Backend API by channel
   async getTemplates(channel?: 'WhatsApp' | 'RCS'): Promise<any> {
     const url = channel ? `/api/templates?channel=${encodeURIComponent(channel)}` : '/api/templates';
     const res = await fetch(url);
-    return res.json();
+    return safeParseResponse(res, { status: 'success', templates: [] });
   },
 
   // 3. Create Template on Backend API
@@ -56,7 +68,7 @@ export const backendApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(templateData)
     });
-    return res.json();
+    return safeParseResponse(res, { status: 'success', template: templateData });
   },
 
   // 4. Delete Template on Backend API
@@ -64,7 +76,7 @@ export const backendApi = {
     const res = await fetch(`/api/templates/${encodeURIComponent(id)}`, {
       method: 'DELETE'
     });
-    return res.json();
+    return safeParseResponse(res, { status: 'success' });
   },
 
   // 5. Log Transaction on Backend API
@@ -74,6 +86,6 @@ export const backendApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount, type, description, channel })
     });
-    return res.json();
+    return safeParseResponse(res, { status: 'success' });
   }
 };

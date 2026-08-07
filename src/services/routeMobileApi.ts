@@ -101,7 +101,19 @@ async function apiRequest<T = any>(endpoint: string, options: RequestInit = {}, 
     headers
   });
 
-  const data = await response.json();
+  let data: any = {};
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch (err) {
+      console.warn(`[Route Mobile API Parse Error] ${endpoint}:`, err);
+    }
+  } else {
+    const text = await response.text();
+    console.warn(`[Route Mobile API Non-JSON Response] ${endpoint}:`, text.slice(0, 100));
+  }
+
   if (!response.ok && data.message) {
     console.warn(`[Route Mobile API Warning] ${endpoint}:`, data);
   }

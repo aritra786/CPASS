@@ -31,6 +31,11 @@ interface AppContextType {
   loginUserAccount: (accountIdOrEmail: string, passwordText: string) => { success: boolean; message: string; tenant?: TenantAccount };
   switchTenantAccount: (tenantId: string) => void;
   logoutUser: () => void;
+
+  // Admin Authentication
+  adminAuthEmail: string | null;
+  loginAdmin: (email: string) => boolean;
+  logoutAdmin: () => void;
   
   // Wallet & Billing State
   walletBalance: number;
@@ -412,6 +417,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return true;
   });
+
+  // Admin Auth State
+  const AUTHORIZED_ADMIN_EMAIL = 'aritra.sardar2805@gmail.com';
+
+  const [adminAuthEmail, setAdminAuthEmail] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('connex_admin_email');
+    }
+    return null;
+  });
+
+  const loginAdmin = (email: string): boolean => {
+    const cleaned = (email || '').trim().toLowerCase();
+    if (cleaned === AUTHORIZED_ADMIN_EMAIL) {
+      localStorage.setItem('connex_admin_email', cleaned);
+      setAdminAuthEmail(cleaned);
+      setPortalModeState('admin');
+      return true;
+    }
+    return false;
+  };
+
+  const logoutAdmin = () => {
+    localStorage.removeItem('connex_admin_email');
+    setAdminAuthEmail(null);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/admin');
+      window.dispatchEvent(new Event('popstate'));
+    }
+  };
 
   // Wallet State
   const [walletBalance, setWalletBalance] = useState<number>(() => {
@@ -1028,6 +1063,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginUserAccount,
         switchTenantAccount,
         logoutUser,
+        adminAuthEmail,
+        loginAdmin,
+        logoutAdmin,
         walletBalance,
         autoRechargeEnabled,
         autoRechargeThreshold,

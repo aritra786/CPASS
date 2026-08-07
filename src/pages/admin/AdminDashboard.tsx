@@ -1,9 +1,9 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Shield, Building2, Wallet, Zap, MessageSquare, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Shield, Building2, Wallet, Zap, MessageSquare, TrendingUp, CheckCircle2, LogOut } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  const { tenants, rateCards } = useApp();
+  const { tenants, logoutAdmin, adminAuthEmail } = useApp();
 
   const totalWalletHeld = tenants.reduce((acc, t) => acc + t.walletBalance, 0);
   const activeTenants = tenants.filter(t => t.status === 'Active').length;
@@ -19,14 +19,24 @@ export const AdminDashboard: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">CONNEX Platform Admin Overview</h1>
           </div>
           <p className="text-xs text-indigo-200">
-            System-wide statistics, active tenant accounts, and platform liquidity
+            Authenticated via Google as: <strong className="text-amber-300 font-mono">{adminAuthEmail || 'aritra.sardar2805@gmail.com'}</strong>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 bg-indigo-800/60 border border-indigo-700/80 rounded-xl text-xs font-bold">
-            Platform Gateway: <span className="text-emerald-400">100% Operational</span>
+          <div className="hidden md:block px-3 py-1.5 bg-indigo-800/60 border border-indigo-700/80 rounded-xl text-xs font-bold">
+            Gateway: <span className="text-emerald-400">100% Operational</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => logoutAdmin()}
+            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
+            id="admin-dashboard-logout-btn"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out Admin</span>
+          </button>
         </div>
       </div>
 

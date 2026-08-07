@@ -24,7 +24,7 @@ import { AdminAuthGate } from './pages/admin/AdminAuthGate';
 import { UserAuthGate } from './pages/UserAuthGate';
 
 const MainAppLayout: React.FC = () => {
-  const { portalMode, setPortalMode, activeTab, isUserLoggedIn } = useApp();
+  const { portalMode, setPortalMode, activeTab, isUserLoggedIn, adminAuthEmail, loginAdmin } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFundsOpen, setAddFundsOpen] = useState(false);
 
@@ -33,10 +33,6 @@ const MainAppLayout: React.FC = () => {
     const hash = window.location.hash.toLowerCase();
     if (path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') return '/admin';
     return '/';
-  });
-
-  const [adminAuthEmail, setAdminAuthEmail] = useState<string | null>(() => {
-    return localStorage.getItem('connex_admin_email');
   });
 
   useEffect(() => {
@@ -63,9 +59,7 @@ const MainAppLayout: React.FC = () => {
   }, [setPortalMode]);
 
   const handleAdminSuccess = (email: string) => {
-    localStorage.setItem('connex_admin_email', email);
-    setAdminAuthEmail(email);
-    setPortalMode('admin');
+    loginAdmin(email);
   };
 
   const handleReturnToUser = () => {

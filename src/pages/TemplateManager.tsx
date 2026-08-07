@@ -439,14 +439,14 @@ export const TemplateManager: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {filteredTemplates.map((template) => {
+          {filteredTemplates.map((template, idx) => {
             const isRejected = template.status === 'Rejected';
             const isApproved = template.status === 'Approved';
             const isPending = template.status === 'Pending';
 
             return (
               <div
-                key={template.id}
+                key={`${template.id}_${idx}`}
                 className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden"
               >
                 {/* Card Top Section */}

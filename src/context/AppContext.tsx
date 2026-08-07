@@ -704,14 +704,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // --- TEMPLATES CRUD ---
-  const addTemplate = (templateData: Omit<Template, 'id' | 'createdAt' | 'status'> & { status?: Template['status'] }) => {
+  const addTemplate = (templateData: Omit<Template, 'id' | 'createdAt' | 'status'> & { id?: string; status?: Template['status'] }) => {
+    const uniqueRand = `${Math.random().toString(36).substring(2, 7)}_${Math.floor(Math.random() * 10000)}`;
     const newTemplate: Template = {
       ...templateData,
-      id: `tpl_${Date.now()}`,
+      id: templateData.id || `tpl_${Date.now()}_${uniqueRand}`,
       status: templateData.status || 'Approved',
       createdAt: new Date().toISOString().split('T')[0]
     };
-    setTemplates(prev => [newTemplate, ...prev]);
+    setTemplates(prev => {
+      // Prevent duplicate templates if template with same name & channel exists
+      const existingIdx = prev.findIndex(t => t.name === newTemplate.name && t.channel === newTemplate.channel);
+      if (existingIdx !== -1) {
+        const copy = [...prev];
+        copy[existingIdx] = { ...copy[existingIdx], ...newTemplate, id: copy[existingIdx].id };
+        return copy;
+      }
+      return [newTemplate, ...prev];
+    });
     supabaseService.insertTemplate(newTemplate);
   };
 

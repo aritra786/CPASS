@@ -413,9 +413,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('connex_user_logged_in');
-      return saved !== null ? saved === 'true' : true;
+      return saved !== null ? saved === 'true' : false;
     }
-    return true;
+    return false;
   });
 
   // Admin Auth State

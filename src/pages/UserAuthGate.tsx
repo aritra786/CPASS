@@ -7,7 +7,7 @@ interface UserAuthGateProps {
   onGoToAdmin?: () => void;
 }
 
-export const UserAuthGate: React.FC<UserAuthGateProps> = ({ onSuccess }) => {
+export const UserAuthGate: React.FC<UserAuthGateProps> = ({ onSuccess, onGoToAdmin }) => {
   const { loginUserAccount } = useApp();
 
   const [accountIdOrEmail, setAccountIdOrEmail] = useState('');
@@ -124,7 +124,7 @@ export const UserAuthGate: React.FC<UserAuthGateProps> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2 cursor-pointer"
           >
             {isSubmitting ? (
               <span>Authenticating...</span>
@@ -136,6 +136,25 @@ export const UserAuthGate: React.FC<UserAuthGateProps> = ({ onSuccess }) => {
             )}
           </button>
         </form>
+
+        {/* Switch to Admin Portal Link */}
+        <div className="pt-3 border-t border-slate-100 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              if (onGoToAdmin) {
+                onGoToAdmin();
+              } else {
+                window.history.pushState({}, '', '/admin');
+                window.dispatchEvent(new Event('popstate'));
+              }
+            }}
+            className="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Switch to CONNEX Admin Portal (/admin)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
       </div>
     </div>

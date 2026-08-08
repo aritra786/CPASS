@@ -16,7 +16,11 @@ import {
   HelpCircle,
   Key,
   Globe,
-  RefreshCw
+  RefreshCw,
+  Search,
+  X,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 export const SendMessage: React.FC = () => {
@@ -34,6 +38,8 @@ export const SendMessage: React.FC = () => {
   const [recipientPhone, setRecipientPhone] = useState('+919876543210');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [customMessage, setCustomMessage] = useState('Hello! Welcome to CONNEX CPaaS platform services.');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState<string>('');
+  const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState<boolean>(false);
   
   // API Key State
   const [jwtToken, setJwtToken] = useState<string>(() => routeMobileApi.getToken() || localStorage.getItem('rml_jwt_token') || '');
@@ -387,7 +393,7 @@ export const SendMessage: React.FC = () => {
           </div>
         )}
 
-        {/* Approved Template Selection */}
+        {/* Approved Template Selection with Live Search */}
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-bold text-slate-700">
@@ -402,20 +408,149 @@ export const SendMessage: React.FC = () => {
             </button>
           </div>
 
-          <select
-            value={selectedTemplateId}
-            onChange={(e) => handleSelectTemplate(e.target.value)}
-            className="w-full px-3.5 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-hidden bg-white font-bold text-slate-800"
-          >
-            <option value="">-- Direct Custom Message (Session) --</option>
-            {templates
-              .filter(t => (t.channel || '').toLowerCase() === (activeChannel || '').toLowerCase())
-              .map((t, idx) => (
-                <option key={`${t.id}_${idx}`} value={t.id}>
-                  {t.name} ({t.type}) [{t.category}] - {t.agentName || t.sender}
-                </option>
-              ))}
-          </select>
+          {/* Search Bar Input */}
+          <div className="relative">
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+              <input
+                type="text"
+                value={templateSearchQuery}
+                onChange={(e) => {
+                  setTemplateSearchQuery(e.target.value);
+                  setIsTemplateDropdownOpen(true);
+                }}
+                onFocus={() => setIsTemplateDropdownOpen(true)}
+                placeholder={`Search ${activeChannel} template by name, category (e.g. wa_auth_otp, marketing)...`}
+                className="w-full pl-9 pr-8 py-2.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-900 bg-slate-50/50 focus:bg-white"
+              />
+              {templateSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateSearchQuery('');
+                  }}
+                  className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 rounded-full"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Selected Active Template Badge Banner */}
+            {selectedTemplate ? (
+              <div className="mt-2 p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="shrink-0 px-2 py-0.5 bg-blue-600 text-white font-mono font-bold text-[10px] rounded-md uppercase">
+                    {selectedTemplate.category || 'Utility'}
+                  </span>
+                  <div className="truncate">
+                    <div className="text-xs font-extrabold text-slate-900 truncate flex items-center gap-1.5">
+                      <span>{selectedTemplate.name}</span>
+                      <span className="text-[10px] text-slate-500 font-normal">({selectedTemplate.type})</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">
+                      {selectedTemplate.bodyText || 'Template text selected'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectTemplate('')}
+                  className="shrink-0 px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200/60"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            ) : null}
+
+            {/* Filtered Templates Dropdown List */}
+            {isTemplateDropdownOpen && (
+              <div className="mt-1.5 max-h-60 overflow-y-auto border border-slate-200 rounded-xl bg-white shadow-lg z-20 space-y-0.5 p-1.5 divide-y divide-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectTemplate('');
+                    setIsTemplateDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${
+                    !selectedTemplateId ? 'bg-blue-50 text-blue-900 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <span>-- Direct Custom Message (Session) --</span>
+                  {!selectedTemplateId && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                </button>
+
+                {templates
+                  .filter(t => (t.channel || '').toLowerCase() === (activeChannel || '').toLowerCase())
+                  .filter(t => {
+                    if (!templateSearchQuery.trim()) return true;
+                    const q = templateSearchQuery.toLowerCase();
+                    return (
+                      t.name.toLowerCase().includes(q) ||
+                      (t.category || '').toLowerCase().includes(q) ||
+                      (t.type || '').toLowerCase().includes(q) ||
+                      (t.bodyText || '').toLowerCase().includes(q) ||
+                      (t.agentName || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((t, idx) => {
+                    const isSelected = selectedTemplateId === t.id;
+                    return (
+                      <button
+                        key={`${t.id}_${idx}`}
+                        type="button"
+                        onClick={() => {
+                          handleSelectTemplate(t.id);
+                          setIsTemplateDropdownOpen(false);
+                        }}
+                        className={`w-full text-left p-2.5 rounded-lg transition-all space-y-1 block ${
+                          isSelected
+                            ? 'bg-blue-50/90 border border-blue-200 text-blue-900'
+                            : 'hover:bg-slate-50 text-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-bold text-xs truncate">
+                            <span className="truncate">{t.name}</span>
+                            <span className="text-[10px] text-slate-400 font-normal">({t.type})</span>
+                          </div>
+                          <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase shrink-0 ${
+                            t.category === 'Marketing' ? 'bg-purple-100 text-purple-700' :
+                            t.category === 'Authentication' ? 'bg-amber-100 text-amber-800' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
+                            {t.category || 'UTILITY'}
+                          </span>
+                        </div>
+                        {t.bodyText && (
+                          <p className="text-[10px] text-slate-500 line-clamp-1">
+                            {t.bodyText}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                {templates
+                  .filter(t => (t.channel || '').toLowerCase() === (activeChannel || '').toLowerCase())
+                  .filter(t => {
+                    if (!templateSearchQuery.trim()) return true;
+                    const q = templateSearchQuery.toLowerCase();
+                    return (
+                      t.name.toLowerCase().includes(q) ||
+                      (t.category || '').toLowerCase().includes(q) ||
+                      (t.type || '').toLowerCase().includes(q) ||
+                      (t.bodyText || '').toLowerCase().includes(q)
+                    );
+                  }).length === 0 && (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      No templates matching "{templateSearchQuery}"
+                    </div>
+                  )}
+              </div>
+            )}
+          </div>
 
           {/* If template has variables, render dynamic input fields */}
           {selectedTemplate && selectedTemplate.variables && selectedTemplate.variables.length > 0 && (

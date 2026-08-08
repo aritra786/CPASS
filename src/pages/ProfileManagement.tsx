@@ -57,7 +57,7 @@ export const ProfileManagement: React.FC = () => {
   };
 
   // Meta WhatsApp Cloud API State
-  const [metaWabaId, setMetaWabaId] = useState('1094810293849102');
+  const [metaWabaId, setMetaWabaId] = useState('RMLUAT11');
   const [metaPhoneId, setMetaPhoneId] = useState('102938475610293');
   const [metaAppToken, setMetaAppToken] = useState('EAAGNzX91a02BC...wZBZB901');
   const [metaVerifyToken, setMetaVerifyToken] = useState('cnx_meta_webhook_secret_2026');
@@ -733,7 +733,7 @@ export const ProfileManagement: React.FC = () => {
                       </span>
                     </div>
                     <div className="space-y-1.5 font-mono text-[11px] text-slate-300">
-                      <div className="flex justify-between"><span className="text-slate-400">WABA ID:</span> <span className="text-purple-300 font-bold">{apiDetailsData.accountDetails?.user_details?.waba_id || '1094810293849102'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">WABA ID:</span> <span className="text-purple-300 font-bold">{apiDetailsData.accountDetails?.user_details?.waba_id || 'RMLUAT11'}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">Client Phone:</span> <span className="text-white">{apiDetailsData.accountDetails?.user_details?.client_msisdn || '+919876543210'}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">Messaging Limit:</span> <span className="text-emerald-400">{apiDetailsData.accountDetails?.phone_number_updates?.messaging_limit || '100K Messages / 24 hrs'}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">Number Quality:</span> <span className="text-emerald-400">{apiDetailsData.accountDetails?.phone_number_updates?.number_quality || 'GREEN (HIGH)'}</span></div>

@@ -85,7 +85,7 @@ export const TemplateManager: React.FC = () => {
             name: item.name,
             channel: selectedChannelTab,
             type: 'Text',
-            agentName: selectedChannelTab === 'WhatsApp' ? 'WABA 109481' : 'RMLUAT11',
+            agentName: selectedChannelTab === 'WhatsApp' ? 'RMLUAT11' : 'routeotp',
             bodyText: bodyComp,
             actions: [],
             variables: [],

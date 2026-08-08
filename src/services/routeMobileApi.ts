@@ -151,6 +151,11 @@ export const routeMobileApi = {
   clearToken(): void {
     localStorage.removeItem('rml_jwt_token');
     localStorage.removeItem('rml_jwt_token_timestamp');
+    try {
+      if (typeof fetch !== 'undefined') {
+        fetch('/api/rml/auth/logout', { method: 'POST' }).catch(() => {});
+      }
+    } catch {}
   },
 
   // Check if token was generated within the last 1 hour (3600 seconds)

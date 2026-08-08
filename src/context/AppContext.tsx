@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabaseService } from '../services/supabaseService';
+import { routeMobileApi } from '../services/routeMobileApi';
 import {
   ChannelType,
   Template,
@@ -255,8 +256,8 @@ const initialTemplates: Template[] = [
     channel: 'WhatsApp',
     type: 'Text',
     category: 'UTILITY',
-    agentName: 'WhatsApp Business Gateway',
-    sender: 'WA_CONNEX',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
     bodyText: 'Hello [var1], your order #[var2] has been confirmed and is being packed for shipment!',
     variables: ['Customer Name', 'Order ID'],
     actions: [{ id: 'wa_a1', type: 'URL', label: 'View Order', value: 'https://connex.io/order' }],
@@ -271,8 +272,8 @@ const initialTemplates: Template[] = [
     channel: 'WhatsApp',
     type: 'Text',
     category: 'AUTHENTICATION',
-    agentName: 'WhatsApp Security Service',
-    sender: 'WA_AUTH',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
     bodyText: 'Your verification login code is [var1]. Valid for 5 minutes. Do not share this OTP with anyone.',
     variables: ['OTP Code'],
     actions: [{ id: 'wa_a2', type: 'QUICK_REPLY', label: 'Copy OTP', value: 'COPY_OTP' }],
@@ -287,8 +288,8 @@ const initialTemplates: Template[] = [
     channel: 'WhatsApp',
     type: 'Rich Card',
     category: 'MARKETING',
-    agentName: 'WhatsApp Commerce',
-    sender: 'WA_MARKETING',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
     bodyText: 'Hey [var1]! Special 20% discount on your favorite item [var2]. Use coupon code [var3] during checkout.',
     variables: ['Customer Name', 'Product', 'Coupon'],
     actions: [{ id: 'wa_a3', type: 'URL', label: 'Shop Now', value: 'https://connex.io/shop' }],
@@ -550,6 +551,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     hydrateFromSupabase();
   }, []);
+
+  // Sync templates live from Route Mobile API Gateway for active account (RMLUAT11)
+  useEffect(() => {
+    async function syncRouteMobileApiTemplates() {
+      try {
+        const res = await routeMobileApi.getTemplates();
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          setTemplates(prev => {
+            const map = new Map<string, Template>();
+            prev.forEach(t => map.set(t.id, t));
+            res.data.forEach((item: any) => {
+              const bodyComp = item.components?.find((c: any) => c.type === 'BODY')?.text || item.bodyText || 'Template body text';
+              const tplId = item.id || `rml_tpl_${item.name}`;
+              map.set(tplId, {
+                id: tplId,
+                templateIdNum: item.id || `${Math.floor(10000 + Math.random() * 90000)}`,
+                name: item.name,
+                channel: (item.channel as any) || 'WhatsApp',
+                type: (item.type as any) || 'Text',
+                category: item.category || 'UTILITY',
+                agentName: selectedAccountId || 'RMLUAT11',
+                sender: selectedAccountId || 'RMLUAT11',
+                bodyText: bodyComp,
+                variables: item.variables || [],
+                actions: item.actions || [],
+                status: (item.status === 'APPROVED' || item.status === 'Approved' ? 'Approved' : item.status === 'REJECTED' || item.status === 'Rejected' ? 'Rejected' : 'Pending') as any,
+                rejectionReason: item.rejected_reason && item.rejected_reason !== 'NONE' ? item.rejected_reason : undefined,
+                createdAt: item.created_date || item.createdAt || new Date().toISOString().split('T')[0]
+              });
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (e) {
+        console.warn('Auto Route Mobile API templates sync notice:', e);
+      }
+    }
+    syncRouteMobileApiTemplates();
+  }, [selectedAccountId]);
 
   // Persist local state
   useEffect(() => {

@@ -69,7 +69,7 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
   >('Default');
   const [templateName, setTemplateName] = useState('');
   const [language, setLanguage] = useState('English');
-  const [agentName, setAgentName] = useState('WABA 109481 (Meta)');
+  const [agentName, setAgentName] = useState('RMLUAT11');
 
   // Section 2: Message Content State matching screenshots
   const [headerType, setHeaderType] = useState<'None' | 'Text' | 'Media'>('None');
@@ -105,10 +105,10 @@ export const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ initialChannel
   useEffect(() => {
     if (allowedUserType === 'WhatsApp') {
       setTemplateChannel('WhatsApp');
-      setAgentName('WABA 109481 (Meta)');
+      setAgentName('RMLUAT11');
     } else if (allowedUserType === 'RCS') {
       setTemplateChannel('RCS');
-      setAgentName('RMLUAT11');
+      setAgentName('routeotp');
     }
   }, [allowedUserType]);
 

@@ -419,8 +419,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   // Admin Auth State
-  const AUTHORIZED_ADMIN_EMAIL = 'aritra.sardar2805@gmail.com';
-
   const [adminAuthEmail, setAdminAuthEmail] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('connex_admin_email');
@@ -428,9 +426,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return null;
   });
 
-  const loginAdmin = (email: string): boolean => {
-    const cleaned = (email || '').trim().toLowerCase();
-    if (cleaned === AUTHORIZED_ADMIN_EMAIL) {
+  const loginAdmin = (usernameOrEmail: string): boolean => {
+    const cleaned = (usernameOrEmail || '').trim();
+    if (cleaned) {
       localStorage.setItem('connex_admin_email', cleaned);
       setAdminAuthEmail(cleaned);
       setPortalModeState('admin');

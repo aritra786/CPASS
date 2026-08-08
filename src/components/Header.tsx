@@ -88,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2">
               <div className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5 shadow-2xs">
                 <Shield className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">Admin: {adminAuthEmail || 'aritra.sardar2805@gmail.com'}</span>
+                <span className="hidden sm:inline">Admin: {adminAuthEmail || 'ARITRA'}</span>
               </div>
               <button
                 type="button"

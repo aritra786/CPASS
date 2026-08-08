@@ -70,7 +70,7 @@ const MainAppLayout: React.FC = () => {
 
   // Render view based on activeTab and portalMode
   if (currentRoute === '/admin' || portalMode === 'admin') {
-    if (adminAuthEmail !== 'aritra.sardar2805@gmail.com') {
+    if (!adminAuthEmail) {
       return (
         <AdminAuthGate
           onAuthenticateSuccess={handleAdminSuccess}

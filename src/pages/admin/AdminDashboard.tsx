@@ -19,7 +19,7 @@ export const AdminDashboard: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-black tracking-tight">CONNEX Platform Admin Overview</h1>
           </div>
           <p className="text-xs text-indigo-200">
-            Authenticated via Google as: <strong className="text-amber-300 font-mono">{adminAuthEmail || 'aritra.sardar2805@gmail.com'}</strong>
+            Authenticated as: <strong className="text-amber-300 font-mono">{adminAuthEmail || 'ARITRA'}</strong>
           </p>
         </div>
 

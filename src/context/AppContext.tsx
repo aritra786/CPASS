@@ -50,7 +50,7 @@ interface AppContextType {
   
   // Templates
   templates: Template[];
-  addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'status'> & { status?: Template['status'] }) => void;
+  addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'status'> & { id?: string; status?: Template['status'] }) => void;
   updateTemplate: (template: Template) => void;
   deleteTemplate: (id: string) => void;
   
@@ -86,6 +86,86 @@ interface AppContextType {
 }
 
 const initialTemplates: Template[] = [
+  {
+    id: 'wa_tpl_101',
+    templateIdNum: '101',
+    name: 'wa_order_confirm',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'UTILITY',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
+    bodyText: 'Hello {{1}}, your order #{{2}} has been confirmed and is being packed.',
+    variables: ['Customer Name', 'Order ID'],
+    actions: [{ id: 'a1', type: 'URL', label: 'View Order', value: 'https://connex.io/order' }],
+    status: 'Approved',
+    createdAt: '2026-08-01',
+    updatedAt: '2026-08-01 10:00 AM'
+  },
+  {
+    id: 'wa_tpl_102',
+    templateIdNum: '102',
+    name: 'wa_auth_otp',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'AUTHENTICATION',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
+    bodyText: 'Your verification code is {{1}}. Do not share this OTP with anyone.',
+    variables: ['OTP Code'],
+    actions: [{ id: 'a2', type: 'QUICK_REPLY', label: 'Copy OTP', value: 'COPY_OTP' }],
+    status: 'Approved',
+    createdAt: '2026-08-02',
+    updatedAt: '2026-08-02 11:30 AM'
+  },
+  {
+    id: 'wa_tpl_103',
+    templateIdNum: '103',
+    name: 'testdynamicurl',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'UTILITY',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
+    bodyText: 'Hello {{1}}, click the link below to verify your dynamic URL session: {{2}}',
+    variables: ['Customer Name', 'URL'],
+    actions: [{ id: 'a3', type: 'URL', label: 'Open URL', value: 'https://connex.io/verify' }],
+    status: 'Approved',
+    createdAt: '2026-08-03',
+    updatedAt: '2026-08-03 01:15 PM'
+  },
+  {
+    id: 'wa_tpl_104',
+    templateIdNum: '104',
+    name: 'ari_test1',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'UTILITY',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
+    bodyText: 'ARI Test 1 notification for user {{1}}. Status update: {{2}}',
+    variables: ['User Name', 'Status'],
+    actions: [],
+    status: 'Approved',
+    createdAt: '2026-08-04',
+    updatedAt: '2026-08-04 02:40 PM'
+  },
+  {
+    id: 'wa_tpl_105',
+    templateIdNum: '105',
+    name: 'testing_api_lto98',
+    channel: 'WhatsApp',
+    type: 'Text',
+    category: 'MARKETING',
+    agentName: 'RMLUAT11',
+    sender: 'RMLUAT11',
+    bodyText: 'Special promotional offer for {{1}}! Use code {{2}} to get 20% off.',
+    variables: ['Customer Name', 'Promo Code'],
+    actions: [{ id: 'a4', type: 'URL', label: 'Claim Offer', value: 'https://connex.io/offer' }],
+    status: 'Approved',
+    createdAt: '2026-08-05',
+    updatedAt: '2026-08-05 04:00 PM'
+  },
   {
     id: 'tpl_62375',
     templateIdNum: '62375',
@@ -163,7 +243,7 @@ const initialTemplates: Template[] = [
     channel: 'RCS',
     type: 'Rich Card',
     category: 'Rich Card',
-    agentName: 'CONNEX Support',
+    agentName: 'routeotp',
     sender: 'routeotp',
     bodyText: 'Hello [var1], your order #[var2] has been shipped via Express Logistics. Track your delivery status below!',
     headerType: 'Image',
@@ -184,7 +264,7 @@ const initialTemplates: Template[] = [
     channel: 'RCS',
     type: 'Text',
     category: 'Authentication',
-    agentName: 'CONNEX Security',
+    agentName: 'routeotp',
     sender: 'routeotp',
     bodyText: 'Your one-time security login passcode is [var1]. Valid for 5 minutes. Do not share this PIN with anyone.',
     variables: ['OTP Code'],
@@ -202,7 +282,7 @@ const initialTemplates: Template[] = [
     channel: 'RCS',
     type: 'Rich Card',
     category: 'Marketing',
-    agentName: 'CONNEX Marketing',
+    agentName: 'routeotp',
     sender: 'routeotp',
     bodyText: 'Hey [var1]! Exclusive 30% OFF Flash Sale is LIVE now for your saved item [var2]. Use code [var3] at checkout.',
     variables: ['Customer Name', 'Item Name', 'Promo Code'],
@@ -564,21 +644,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             res.data.forEach((item: any) => {
               const bodyComp = item.components?.find((c: any) => c.type === 'BODY')?.text || item.bodyText || 'Template body text';
               const tplId = item.id || `rml_tpl_${item.name}`;
+              const existing = prev.find(p => p.id === item.id || (p.name === item.name && p.channel === item.channel));
+
+              const itemChannel = item.channel || (existing ? existing.channel : item.name.startsWith('wa_') ? 'WhatsApp' : 'RCS');
+              const itemType = item.type || (existing ? existing.type : 'Text');
+
               map.set(tplId, {
                 id: tplId,
-                templateIdNum: item.id || `${Math.floor(10000 + Math.random() * 90000)}`,
+                templateIdNum: item.templateIdNum || item.id || (existing ? existing.templateIdNum : `${Math.floor(10000 + Math.random() * 90000)}`),
                 name: item.name,
-                channel: (item.channel as any) || 'WhatsApp',
-                type: (item.type as any) || 'Text',
-                category: item.category || 'UTILITY',
-                agentName: selectedAccountId || 'RMLUAT11',
-                sender: selectedAccountId || 'RMLUAT11',
+                channel: itemChannel as any,
+                type: itemType as any,
+                category: item.category || (existing ? existing.category : 'UTILITY'),
+                agentName: item.agentName || (existing ? existing.agentName : (itemChannel === 'RCS' ? 'routeotp' : 'RMLUAT11')),
+                sender: item.sender || (existing ? existing.sender : (itemChannel === 'RCS' ? 'routeotp' : 'RMLUAT11')),
                 bodyText: bodyComp,
-                variables: item.variables || [],
-                actions: item.actions || [],
+                variables: item.variables || (existing ? existing.variables : []),
+                actions: item.actions || (existing ? existing.actions : []),
+                headerType: item.headerType || (existing ? existing.headerType : undefined),
+                headerMediaUrl: item.headerMediaUrl || (existing ? existing.headerMediaUrl : undefined),
                 status: (item.status === 'APPROVED' || item.status === 'Approved' ? 'Approved' : item.status === 'REJECTED' || item.status === 'Rejected' ? 'Rejected' : 'Pending') as any,
-                rejectionReason: item.rejected_reason && item.rejected_reason !== 'NONE' ? item.rejected_reason : undefined,
-                createdAt: item.created_date || item.createdAt || new Date().toISOString().split('T')[0]
+                rejectionReason: item.rejectionReason || (item.rejected_reason && item.rejected_reason !== 'NONE' ? item.rejected_reason : (existing ? existing.rejectionReason : undefined)),
+                createdAt: item.createdAt || item.created_date || (existing ? existing.createdAt : new Date().toISOString().split('T')[0])
               });
             });
             return Array.from(map.values());

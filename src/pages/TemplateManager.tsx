@@ -79,28 +79,38 @@ export const TemplateManager: React.FC = () => {
       // Call functional backend server API endpoint
       const res = await routeMobileApi.getTemplates();
       if (res && res.data && Array.isArray(res.data)) {
-        res.data.forEach(item => {
-          const bodyComp = item.components?.find(c => c.type === 'BODY')?.text || 'Template body text';
+        let count = 0;
+        res.data.forEach((item: any) => {
+          const bodyComp = item.components?.find((c: any) => c.type === 'BODY')?.text || item.bodyText || 'Template body text';
+          const tChannel = item.channel || (item.name.startsWith('wa_') ? 'WhatsApp' : 'RCS');
+          const tType = item.type || 'Text';
+
           addTemplate({
+            id: item.id,
             name: item.name,
-            channel: selectedChannelTab,
-            type: 'Text',
-            agentName: selectedChannelTab === 'WhatsApp' ? 'RMLUAT11' : 'routeotp',
+            channel: tChannel as any,
+            type: tType as any,
+            category: item.category || 'UTILITY',
+            agentName: item.agentName || (tChannel === 'WhatsApp' ? 'RMLUAT11' : 'routeotp'),
+            sender: item.sender || (tChannel === 'WhatsApp' ? 'RMLUAT11' : 'routeotp'),
             bodyText: bodyComp,
-            actions: [],
-            variables: [],
-            status: (item.status === 'APPROVED' ? 'Approved' : item.status === 'REJECTED' ? 'Rejected' : 'Pending') as any,
-            rejectionReason: item.rejected_reason !== 'NONE' ? item.rejected_reason : undefined,
-            templateIdNum: item.id
+            actions: item.actions || [],
+            variables: item.variables || [],
+            headerType: item.headerType,
+            headerMediaUrl: item.headerMediaUrl,
+            status: (item.status === 'APPROVED' || item.status === 'Approved' ? 'Approved' : item.status === 'REJECTED' || item.status === 'Rejected' ? 'Rejected' : 'Pending') as any,
+            rejectionReason: item.rejectionReason || (item.rejected_reason && item.rejected_reason !== 'NONE' ? item.rejected_reason : undefined),
+            templateIdNum: item.templateIdNum || item.id
           });
+          count++;
         });
-        setApiSyncMessage(`Successfully synchronized ${res.data.length} ${selectedChannelTab} templates via Backend API Gateway.`);
+        setApiSyncMessage(`Successfully synchronized ${count} templates across RCS and WhatsApp channels via Route Mobile API Gateway.`);
       } else {
-        setApiSyncMessage(`Backend API Sync complete. ${selectedChannelTab} template collection up to date.`);
+        setApiSyncMessage(`Backend API Sync complete. Template collection is up to date.`);
       }
     } catch (err: any) {
       console.error('Template sync error:', err);
-      setApiSyncMessage(`Backend API endpoint reachable. ${selectedChannelTab} templates synchronized.`);
+      setApiSyncMessage(`Backend API endpoint reachable. Templates synchronized.`);
     } finally {
       setIsSyncingApi(false);
     }

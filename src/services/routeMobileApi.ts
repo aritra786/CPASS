@@ -72,14 +72,26 @@ export interface RmlSendMessageResponse {
 
 export interface RmlTemplate {
   id?: string;
+  templateIdNum?: string;
   name: string;
+  channel?: 'RCS' | 'WhatsApp';
+  type?: 'Text' | 'Rich Card' | 'Carousel';
   category?: string;
   status?: string;
   language?: string;
   quality_rating?: string;
   components?: any[];
   rejected_reason?: string;
+  rejectionReason?: string;
   created_date?: string;
+  createdAt?: string;
+  agentName?: string;
+  sender?: string;
+  bodyText?: string;
+  variables?: string[];
+  actions?: any[];
+  headerType?: string;
+  headerMediaUrl?: string;
 }
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // Token is valid for 1 hour (3600 seconds)

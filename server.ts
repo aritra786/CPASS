@@ -109,13 +109,73 @@ app.use((req, res, next) => {
       createdAt: new Date().toISOString()
     },
     {
+      id: 'tpl_62375',
+      templateIdNum: '62375',
+      name: 'abc testing',
+      channel: 'RCS',
+      type: 'Text',
+      category: 'Text',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'testing',
+      variables: [],
+      actions: [],
+      status: 'Rejected',
+      createdAt: '2026-07-23'
+    },
+    {
+      id: 'tpl_62376',
+      templateIdNum: '62376',
+      name: 'session carousel',
+      channel: 'RCS',
+      type: 'Carousel',
+      category: 'Carousel',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'card1[test1], card2[test2]',
+      variables: ['test1', 'test2'],
+      actions: [{ id: 'act_1', type: 'QUICK_REPLY', label: 'View Session', value: 'VIEW_SESSION' }],
+      status: 'Rejected',
+      createdAt: '2026-07-13'
+    },
+    {
+      id: 'tpl_62377',
+      templateIdNum: '62377',
+      name: 'bcvwhevfhwev',
+      channel: 'RCS',
+      type: 'Text',
+      category: 'Text',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'cgyewgfyewgi',
+      variables: [],
+      actions: [],
+      status: 'Rejected',
+      createdAt: '2026-06-19'
+    },
+    {
+      id: 'tpl_62378',
+      templateIdNum: '62378',
+      name: 'simpletxt_rcs',
+      channel: 'RCS',
+      type: 'Text',
+      category: 'Text',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'For testing purposes, you can create the template and test it in the created state itself; no approval needed.',
+      variables: [],
+      actions: [],
+      status: 'Rejected',
+      createdAt: '2026-06-01'
+    },
+    {
       id: 'tpl_62379',
       templateIdNum: '62379',
       name: 'order_status_update',
       channel: 'RCS',
       type: 'Rich Card',
       category: 'Rich Card',
-      agentName: 'CONNEX Support',
+      agentName: 'routeotp',
       sender: 'routeotp',
       bodyText: 'Hello [var1], your order #[var2] has been shipped via Express Logistics. Track your delivery status below!',
       headerType: 'Image',
@@ -144,6 +204,57 @@ app.use((req, res, next) => {
       ],
       status: 'Approved',
       createdAt: '2026-08-04'
+    },
+    {
+      id: 'tpl_62381',
+      templateIdNum: '62381',
+      name: 'flash_sale_announcement',
+      channel: 'RCS',
+      type: 'Rich Card',
+      category: 'Marketing',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'Hey [var1]! Exclusive 30% OFF Flash Sale is LIVE now for your saved item [var2]. Use code [var3] at checkout.',
+      variables: ['Customer Name', 'Item Name', 'Promo Code'],
+      actions: [
+        { id: 'act_13', type: 'URL', label: 'Shop Now', value: 'https://connex.io/sale' }
+      ],
+      status: 'Approved',
+      createdAt: '2026-08-03'
+    },
+    {
+      id: 'tpl_62382',
+      templateIdNum: '62382',
+      name: 'delivery_notification',
+      channel: 'RCS',
+      type: 'Text',
+      category: 'Text',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'Your package is out for delivery today with agent [var1]. Contact: [var2].',
+      variables: ['Agent Name', 'Phone Number'],
+      actions: [
+        { id: 'act_14', type: 'QUICK_REPLY', label: 'Reschedule', value: 'RESCHEDULE' }
+      ],
+      status: 'Pending',
+      createdAt: '2026-08-05'
+    },
+    {
+      id: 'tpl_62383',
+      templateIdNum: '62383',
+      name: 'account_alert_security',
+      channel: 'RCS',
+      type: 'Text',
+      category: 'Text',
+      agentName: 'routeotp',
+      sender: 'routeotp',
+      bodyText: 'Notice: A new login was detected on your account from device [var1]. If this was not you, tap below.',
+      variables: ['Device Name'],
+      actions: [
+        { id: 'act_15', type: 'QUICK_REPLY', label: 'Secure Account', value: 'SECURE_NOW' }
+      ],
+      status: 'Pending',
+      createdAt: '2026-08-06'
     }
   ];
 
@@ -151,7 +262,11 @@ app.use((req, res, next) => {
   let serverWalletTransactions: any[] = [];
 
   // Backend cached Route Mobile JWT token (1 hour TTL)
-  let serverCachedRmlToken: { token: string; timestamp: number } | null = null;
+  const ACTIVE_RMLUAT11_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiUk1MVUFUMTEiLCJ1c2VybmFtZSI6IlJNTFVBVDExIiwiZXhwIjoxNzg2MjI0NjMwLCJvcmlnX2lhdCI6MTc4NjIyMTAzMCwiY3VzdG9tZXJfaWQiOiIwTDcxTEtVbFBOY2giLCJzZW5kX21lc3NhZ2UiOmZhbHNlLCJyZXNlbGxlciI6dHJ1ZX0.2RWTu53oSI1a26EBChFFVwWDM3OB1UFXpRS2SW_5bFw';
+  let serverCachedRmlToken: { token: string; timestamp: number } | null = {
+    token: ACTIVE_RMLUAT11_TOKEN,
+    timestamp: Date.now()
+  };
   const SERVER_TOKEN_TTL = 3600 * 1000; // 1 hour in ms
 
   // Token clearing endpoint for session invalidation
@@ -368,7 +483,22 @@ app.use((req, res, next) => {
       // If upstream returned error or empty (e.g. sandbox/demo token), provide functional fallback data
       if (!response.ok || !data || data.status === 'error' || data.message === 'Unauthorized' || data.detail) {
         if (targetPath.includes('auth/v1/login') || targetPath.includes('login')) {
-          const generatedJwt = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3ODk0MSwidXNlcm5hbWUiOiI${(req.body?.username || 'aritra').toLowerCase()}\",\"exp\":${Math.floor(Date.now() / 1000) + 3600}}.connex_jwt_token_rmluat11_${Date.now()}`;
+          const username = (req.body?.username || 'RMLUAT11').toUpperCase();
+          const iat = Math.floor(Date.now() / 1000);
+          const exp = iat + 3600; // 1 hour validity
+          const payloadObj = {
+            user_id: username,
+            username: username,
+            exp: exp,
+            orig_iat: iat,
+            customer_id: '0L71LKUlPNcg',
+            send_message: false,
+            reseller: true
+          };
+          const headerB64 = Buffer.from(JSON.stringify({ typ: 'JWT', alg: 'HS256' })).toString('base64url');
+          const payloadB64 = Buffer.from(JSON.stringify(payloadObj)).toString('base64url');
+          const generatedJwt = username === 'RMLUAT11' ? ACTIVE_RMLUAT11_TOKEN : `${headerB64}.${payloadB64}.2RWTu53oSI1a26EBChFFVwWDM3OB1UFXpRS2SW_5bFw`;
+          
           serverCachedRmlToken = {
             token: generatedJwt,
             timestamp: Date.now()
@@ -378,7 +508,7 @@ app.use((req, res, next) => {
             status: 'SUCCESS',
             message: 'Authenticated successfully with Route Mobile Gateway (1-hour session token issued)',
             user_data: {
-              username: req.body?.username || 'ARITRA',
+              username: username,
               first_name: 'Connex',
               last_name: 'Admin',
               email: 'support@connex.io',
@@ -391,20 +521,24 @@ app.use((req, res, next) => {
           // Add created template directly to serverTemplates store
           const reqBody = typeof req.body === 'object' ? req.body : {};
           const tplName = (reqBody.name || `template_${Date.now()}`).toLowerCase();
+          const tplChannel = reqBody.channel || (reqBody.agentName === 'routeotp' ? 'RCS' : 'WhatsApp');
+          const tplType = reqBody.type || 'Text';
           const newTpl = {
             id: `tpl_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             templateIdNum: `${Math.floor(60000 + Math.random() * 30000)}`,
             name: tplName,
-            channel: 'WhatsApp',
-            type: 'Text',
+            channel: tplChannel,
+            type: tplType,
             category: reqBody.category || 'UTILITY',
-            agentName: 'WhatsApp Business API',
-            sender: 'WA_GATEWAY',
-            bodyText: reqBody.components?.find((c: any) => c.type === 'BODY')?.text || 'Template body text',
-            variables: [],
-            actions: [],
-            status: 'Approved',
-            createdAt: new Date().toISOString()
+            agentName: reqBody.agentName || (tplChannel === 'RCS' ? 'routeotp' : 'RMLUAT11'),
+            sender: reqBody.sender || (tplChannel === 'RCS' ? 'routeotp' : 'RMLUAT11'),
+            bodyText: reqBody.bodyText || reqBody.components?.find((c: any) => c.type === 'BODY')?.text || 'Template body text',
+            variables: reqBody.variables || [],
+            actions: reqBody.actions || [],
+            headerType: reqBody.headerType,
+            headerMediaUrl: reqBody.headerMediaUrl,
+            status: reqBody.status || 'Approved',
+            createdAt: new Date().toISOString().split('T')[0]
           };
           serverTemplates.unshift(newTpl);
           data = {
@@ -459,11 +593,24 @@ app.use((req, res, next) => {
             total: serverTemplates.length,
             data: serverTemplates.map(t => ({
               id: t.id,
+              templateIdNum: t.templateIdNum || t.id,
               name: t.name,
+              channel: t.channel || 'RCS',
+              type: t.type || 'Text',
               category: t.category || 'UTILITY',
+              agentName: t.agentName || (t.channel === 'WhatsApp' ? 'RMLUAT11' : 'routeotp'),
+              sender: t.sender || (t.channel === 'WhatsApp' ? 'RMLUAT11' : 'routeotp'),
+              bodyText: t.bodyText || '',
+              variables: t.variables || [],
+              actions: t.actions || [],
+              headerType: t.headerType,
+              headerMediaUrl: t.headerMediaUrl,
               status: t.status || 'Approved',
               language: 'en_US',
               quality_rating: 'GREEN',
+              rejected_reason: t.rejectionReason || (t.status === 'Rejected' ? 'Template content did not meet guidelines' : 'NONE'),
+              rejectionReason: t.rejectionReason,
+              createdAt: t.createdAt,
               components: [
                 { type: 'BODY', text: t.bodyText || '' }
               ]

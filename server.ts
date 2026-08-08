@@ -16,6 +16,9 @@ app.use((req, res, next) => {
     res.sendStatus(200);
     return;
   }
+  if (process.env.VERCEL === '1' && !req.url.startsWith('/api')) {
+    req.url = '/api' + req.url;
+  }
   next();
 });
 

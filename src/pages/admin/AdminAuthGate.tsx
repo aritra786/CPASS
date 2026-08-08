@@ -31,7 +31,8 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
     setIsVerifying(true);
 
     setTimeout(() => {
-      if (trimmedUser.toUpperCase() === 'ARITRA' && password === 'ARITRA009') {
+      const u = trimmedUser.toUpperCase();
+      if (u === 'ARITRA' && password === 'ARITRA009') {
         setSuccessMsg('Authentication successful! Redirecting to Admin Dashboard...');
         setTimeout(() => {
           setIsVerifying(false);
@@ -39,7 +40,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
         }, 400);
       } else {
         setIsVerifying(false);
-        setError('Invalid username or password. Please try again.');
+        setError('Access denied. Invalid admin credentials. Only authorized admin username (ARITRA) and password are allowed.');
       }
     }, 400);
   };

@@ -31,6 +31,7 @@ interface AppContextType {
   loginUserAccount: (accountIdOrEmail: string, passwordText: string) => { success: boolean; message: string; tenant?: TenantAccount };
   switchTenantAccount: (tenantId: string) => void;
   logoutUser: () => void;
+  clearAllSessions: () => void;
 
   // Admin Authentication
   adminAuthEmail: string | null;
@@ -374,7 +375,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'user';
   });
 
+  const clearAllSessions = () => {
+    setAdminAuthEmail(null);
+    setIsUserLoggedIn(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('connex_admin_email');
+      localStorage.setItem('connex_user_logged_in', 'false');
+      localStorage.removeItem('rml_jwt_token');
+    }
+  };
+
   const setPortalMode = (mode: 'user' | 'admin') => {
+    clearAllSessions();
     setPortalModeState(mode);
     if (typeof window !== 'undefined') {
       const targetPath = mode === 'admin' ? '/admin' : '/';
@@ -418,19 +430,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   });
 
-  // Admin Auth State
-  const [adminAuthEmail, setAdminAuthEmail] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('connex_admin_email');
-    }
-    return null;
-  });
+  // Admin Auth State - strictly restricted to authorized admin ARITRA, cleared on reload/reopen
+  const [adminAuthEmail, setAdminAuthEmail] = useState<string | null>(null);
 
   const loginAdmin = (usernameOrEmail: string): boolean => {
     const cleaned = (usernameOrEmail || '').trim();
-    if (cleaned) {
-      localStorage.setItem('connex_admin_email', cleaned);
-      setAdminAuthEmail(cleaned);
+    if (cleaned && (cleaned.toUpperCase() === 'ARITRA' || cleaned.toLowerCase() === 'aritra.sardar2805@gmail.com')) {
+      setAdminAuthEmail('ARITRA');
       setPortalModeState('admin');
       return true;
     }
@@ -438,8 +444,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logoutAdmin = () => {
-    localStorage.removeItem('connex_admin_email');
-    setAdminAuthEmail(null);
+    clearAllSessions();
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', '/admin');
       window.dispatchEvent(new Event('popstate'));
@@ -732,8 +737,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [selectedAccountId, tenants, activeChannel]);
 
   const logoutUser = () => {
-    setIsUserLoggedIn(false);
-    localStorage.setItem('connex_user_logged_in', 'false');
+    clearAllSessions();
   };
 
   // --- TENANTS CRUD ---
@@ -1079,6 +1083,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginUserAccount,
         switchTenantAccount,
         logoutUser,
+        clearAllSessions,
         adminAuthEmail,
         loginAdmin,
         logoutAdmin,

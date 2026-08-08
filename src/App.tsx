@@ -25,7 +25,7 @@ import { AdminAuthGate } from './pages/admin/AdminAuthGate';
 import { UserAuthGate } from './pages/UserAuthGate';
 
 const MainAppLayout: React.FC = () => {
-  const { portalMode, setPortalMode, activeTab, isUserLoggedIn, adminAuthEmail, loginAdmin } = useApp();
+  const { portalMode, setPortalMode, activeTab, isUserLoggedIn, adminAuthEmail, loginAdmin, clearAllSessions } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addFundsOpen, setAddFundsOpen] = useState(false);
 
@@ -42,30 +42,30 @@ const MainAppLayout: React.FC = () => {
       const hash = window.location.hash.toLowerCase();
       if (path.startsWith('/admin') || hash === '#/admin' || hash === '#admin') {
         setCurrentRoute('/admin');
-        setPortalMode('admin');
+        if (!adminAuthEmail) {
+          clearAllSessions();
+        }
       } else {
         setCurrentRoute('/');
-        setPortalMode('user');
       }
     };
 
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
-    handleUrlChange();
 
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);
     };
-  }, [setPortalMode]);
+  }, [adminAuthEmail, clearAllSessions]);
 
   const handleAdminSuccess = (email: string) => {
     loginAdmin(email);
   };
 
   const handleReturnToUser = () => {
-    window.history.pushState({}, '', '/');
-    window.dispatchEvent(new Event('popstate'));
+    clearAllSessions();
+    setPortalMode('user');
   };
 
   // Render view based on activeTab and portalMode
